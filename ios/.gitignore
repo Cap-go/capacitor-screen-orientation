@@ -1,0 +1,7 @@
+Pods
+Podfile.lock
+Package.resolved
+Build
+xcuserdata
+DerivedData
+.swiftpm
