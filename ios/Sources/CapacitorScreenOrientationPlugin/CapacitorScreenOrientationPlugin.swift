@@ -11,7 +11,7 @@ import UIKit
  */
 @objc(CapacitorScreenOrientationPlugin)
 public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
-    private let pluginVersion: String = "7.0.0"
+    private let pluginVersion: String = "7.1.0"
     public let identifier = "CapacitorScreenOrientationPlugin"
     public let jsName = "CapacitorScreenOrientation"
     public let pluginMethods: [CAPPluginMethod] = [
