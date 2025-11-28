@@ -1,0 +1,10 @@
+{
+  "appId": "app.capgo.screenorientation",
+  "appName": "Screen Orientation Example",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false
+    }
+  }
+}
