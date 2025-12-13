@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 
 import './style.css';
 import { ScreenOrientation } from '@capgo/capacitor-screen-orientation';
@@ -148,7 +149,7 @@ const output = document.getElementById('plugin-output');
 
 function buildForm(action) {
   formContainer.innerHTML = '';
-  if (!action.inputs || !action.inputs.length) {
+  if (!action.inputs?.length) {
     const note = document.createElement('p');
     note.className = 'no-input-note';
     note.textContent = 'This action does not require any inputs.';

@@ -58,6 +58,7 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
   async startOrientationTracking(_options?: StartOrientationTrackingOptions): Promise<void> {
     // Motion-based orientation tracking is only supported on iOS
     // Silently ignore on web
+    console.warn('Motion-based orientation tracking is not available on web platform', _options);
   }
 
   async stopOrientationTracking(): Promise<void> {
