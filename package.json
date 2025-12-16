@@ -24,6 +24,7 @@
   "bugs": {
     "url": "https://github.com/Cap-go/capacitor-screen-orientation/issues"
   },
+  "homepage": "https://capgo.app/docs/plugins/screen-orientation/",
   "keywords": [
     "capacitor",
     "plugin",
