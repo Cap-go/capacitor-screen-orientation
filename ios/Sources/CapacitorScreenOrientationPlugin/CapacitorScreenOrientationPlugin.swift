@@ -201,14 +201,7 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
     // MARK: - Helper Methods
 
     private func getCurrentOrientationType() -> String {
-        let interfaceOrientation: UIInterfaceOrientation
-
-        if #available(iOS 13.0, *) {
-            interfaceOrientation = UIApplication.shared.windows.first?.windowScene?.interfaceOrientation ?? .portrait
-        } else {
-            interfaceOrientation = UIApplication.shared.statusBarOrientation
-        }
-
+        let interfaceOrientation = UIApplication.shared.windows.first?.windowScene?.interfaceOrientation ?? .portrait
         return mapInterfaceOrientationToString(interfaceOrientation)
     }
 
