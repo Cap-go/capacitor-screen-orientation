@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Screen Orientation Example</string>
+    <string name="title_activity_main">Screen Orientation Example</string>
+    <string name="package_name">app.capgo.screenorientation</string>
+    <string name="custom_url_scheme">app.capgo.screenorientation</string>
+</resources>
