@@ -47,6 +47,12 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
     protected void handleOnConfigurationChanged(Configuration newConfig) {
         super.handleOnConfigurationChanged(newConfig);
 
+        // Skip system orientation changes when motion tracking is active
+        // to avoid duplicate events
+        if (isTrackingMotion) {
+            return;
+        }
+
         if (currentOrientation != newConfig.orientation) {
             currentOrientation = newConfig.orientation;
             notifyOrientationChange();
