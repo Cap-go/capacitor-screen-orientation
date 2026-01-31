@@ -17,7 +17,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 @CapacitorPlugin(name = "CapacitorScreenOrientation")
 public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEventListener {
 
-    private final String pluginVersion = "8.1.6";
+    private final String pluginVersion = "8.1.7";
     private int currentOrientation;
     private SensorManager sensorManager;
     private Sensor accelerometer;
