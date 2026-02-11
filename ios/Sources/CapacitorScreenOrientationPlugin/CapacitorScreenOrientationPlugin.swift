@@ -52,7 +52,7 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
         // Skip system orientation changes when motion tracking is active
         // to avoid duplicate events
         guard !isTrackingWithMotion else { return }
-        
+
         let orientation = UIDevice.current.orientation
         if orientation.isValidInterfaceOrientation {
             notifyOrientationChange(fromDeviceOrientation: orientation)
