@@ -266,6 +266,6 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
             return y > 0 ? "portrait-secondary" : "portrait-primary";
         }
         // Default to current if unclear
-        return currentPhysicalOrientation; 
+        return currentPhysicalOrientation;
     }
 }
