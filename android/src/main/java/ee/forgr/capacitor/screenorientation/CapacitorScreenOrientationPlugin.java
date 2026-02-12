@@ -17,7 +17,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 @CapacitorPlugin(name = "CapacitorScreenOrientation")
 public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEventListener {
 
-    private final String pluginVersion = "8.1.9";
+    private final String pluginVersion = "8.1.10";
     private int currentOrientation;
     private SensorManager sensorManager;
     private Sensor accelerometer;
@@ -258,25 +258,13 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
         // X axis: left/right tilt
         // Y axis: forward/backward tilt
         // Z axis: up/down (gravity when flat)
-
-        if (Math.abs(z) > 8) {
-            // Device is relatively flat, use x/y to determine orientation
-            if (Math.abs(x) > Math.abs(y)) {
-                // Landscape orientation
-                return x > 0 ? "landscape-primary" : "landscape-secondary";
-            } else {
-                // Portrait orientation
-                return y > 0 ? "portrait-primary" : "portrait-secondary";
-            }
-        } else {
-            // Device is tilted, use strongest axis
-            if (Math.abs(x) > threshold && Math.abs(x) > Math.abs(y)) {
-                return x > 0 ? "landscape-primary" : "landscape-secondary";
-            } else if (Math.abs(y) > threshold) {
-                return y > 0 ? "portrait-primary" : "portrait-secondary";
-            }
+        if (Math.abs(x) > threshold && Math.abs(x) > Math.abs(y)) {
+            // Landscape orientation
+            return x > 0 ? "landscape-primary" : "landscape-secondary";
+        } else if (Math.abs(y) > threshold) {
+            // Portrait orientation
+            return y > 0 ? "portrait-primary" : "portrait-secondary";
         }
-
         // Default to current if unclear
         return currentPhysicalOrientation;
     }

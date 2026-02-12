@@ -11,7 +11,7 @@ import UIKit
  */
 @objc(CapacitorScreenOrientationPlugin)
 public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
-    private let pluginVersion: String = "8.1.9"
+    private let pluginVersion: String = "8.1.10"
     public let identifier = "CapacitorScreenOrientationPlugin"
     public let jsName = "CapacitorScreenOrientation"
     public let pluginMethods: [CAPPluginMethod] = [
@@ -52,7 +52,7 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
         // Skip system orientation changes when motion tracking is active
         // to avoid duplicate events
         guard !isTrackingWithMotion else { return }
-        
+
         let orientation = UIDevice.current.orientation
         if orientation.isValidInterfaceOrientation {
             notifyOrientationChange(fromDeviceOrientation: orientation)
