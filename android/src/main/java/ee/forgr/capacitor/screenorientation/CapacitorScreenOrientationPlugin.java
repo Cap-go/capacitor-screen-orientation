@@ -260,10 +260,10 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
         // Z axis: up/down (gravity when flat)
         if (Math.abs(x) > threshold && Math.abs(x) > Math.abs(y)) {
             // Landscape orientation
-            return x > 0 ? "landscape-secondary" : "landscape-primary";
+            return x > 0 ? "landscape-primary" : "landscape-secondary";
         } else if (Math.abs(y) > threshold) {
             // Portrait orientation
-            return y > 0 ? "portrait-secondary" : "portrait-primary";
+            return y > 0 ? "portrait-primary" : "portrait-secondary";
         }
         // Default to current if unclear
         return currentPhysicalOrientation;
