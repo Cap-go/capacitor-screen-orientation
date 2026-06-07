@@ -1,9 +1,8 @@
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Capacitor } from '@capacitor/core';
 /* eslint-disable no-undef */
-
-import './style.css';
 import { ScreenOrientation } from '@capgo/capacitor-screen-orientation';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import './style.css';
 
 const plugin = ScreenOrientation;
 const state = {};
