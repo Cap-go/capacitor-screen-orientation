@@ -1,7 +1,8 @@
+import { Capacitor } from '@capacitor/core';
 /* eslint-disable no-undef */
-
-import './style.css';
 import { ScreenOrientation } from '@capgo/capacitor-screen-orientation';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import './style.css';
 
 const plugin = ScreenOrientation;
 const state = {};
@@ -292,3 +293,9 @@ runButton.addEventListener('click', async () => {
 });
 
 populateActions();
+
+if (Capacitor.isNativePlatform()) {
+  CapacitorUpdater.notifyAppReady().catch((error) => {
+    console.error('Capgo notifyAppReady failed', error);
+  });
+}
