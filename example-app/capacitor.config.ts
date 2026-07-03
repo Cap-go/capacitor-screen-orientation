@@ -4,7 +4,7 @@ import pkg from './package.json';
 
 const config: CapacitorConfig = {
   appId: 'app.capgo.screenorientation',
-  appName: 'Screen Orientation Example',
+  appName: '@capgo/capacitor-screen-orientation',
   webDir: 'dist',
   plugins: {
     SplashScreen: {
