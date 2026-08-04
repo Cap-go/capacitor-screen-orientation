@@ -69,6 +69,16 @@ To detect physical device orientation using motion sensors on iOS, you need to a
 <string>This app uses motion sensors to detect the true physical orientation of your device.</string>
 ```
 
+Locking the screen orientation only applies to the Capacitor view controller by default. To also apply the lock to presented view controllers (for example, ones shown by the Browser plugin), add this to your app's `AppDelegate.swift`:
+
+```swift
+func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+  return UIInterfaceOrientationMask(rawValue: (self.window!.rootViewController as! CAPBridgeViewController).supportedInterfaceOrientations.rawValue)
+}
+```
+
+Make sure `UISupportedInterfaceOrientations` in `Info.plist` includes every orientation you want to lock to (for example landscape left/right when locking to `landscape`).
+
 ## Usage
 
 ```typescript

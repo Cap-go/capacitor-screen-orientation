@@ -28,6 +28,8 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
     private var currentDeviceOrientation: UIDeviceOrientation = .portrait
     private var isTrackingWithMotion = false
     private var lastNotifiedOrientation: String?
+    private var capViewController: CAPBridgeViewController?
+    private var defaultSupportedOrientations: [Int] = []
 
     override public func load() {
         // Listen for device orientation changes from system
@@ -40,6 +42,11 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
 
         // Start monitoring device orientation
         UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+
+        if let viewController = self.bridge?.viewController as? CAPBridgeViewController {
+            self.capViewController = viewController
+            self.defaultSupportedOrientations = viewController.supportedOrientations
+        }
     }
 
     deinit {
@@ -70,18 +77,43 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
 
+        guard let mask = getOrientationMask(from: orientationString) else {
+            call.reject("Invalid orientation value: \(orientationString)")
+            return
+        }
+
         let bypassLock = call.getBool("bypassOrientationLock") ?? false
 
         DispatchQueue.main.async {
-            // Lock the orientation at the app level
-            if let mask = self.getOrientationMask(from: orientationString) {
-                // Note: Actual implementation would need to communicate with AppDelegate
-                // to set the supported interface orientations
-                // For now, we'll just track the preference
-                print("Locking orientation to: \(orientationString)")
+            if self.capViewController == nil,
+               let viewController = self.bridge?.viewController as? CAPBridgeViewController {
+                self.capViewController = viewController
+                if self.defaultSupportedOrientations.isEmpty {
+                    self.defaultSupportedOrientations = viewController.supportedOrientations
+                }
             }
 
-            // Start motion tracking if bypass is requested
+            self.capViewController?.supportedOrientations = self.orientationValues(from: mask)
+
+            if #available(iOS 16.0, *) {
+                guard let windowScene = self.currentWindowScene() else {
+                    call.reject("No window scene available to lock orientation")
+                    return
+                }
+
+                windowScene.keyWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+                self.capViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+                windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { error in
+                    // Geometry update can fail when the requested orientation is already active
+                    // or temporarily unavailable; the supportedOrientations mask still applies.
+                    print("Screen orientation geometry update warning: \(error.localizedDescription)")
+                }
+            } else {
+                let orientationValue = self.preferredInterfaceOrientationValue(from: orientationString)
+                UIDevice.current.setValue(orientationValue, forKey: "orientation")
+                UINavigationController.attemptRotationToDeviceOrientation()
+            }
+
             if bypassLock {
                 self.startMotionTracking()
             }
@@ -92,11 +124,35 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func unlock(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            // Stop motion tracking
             self.stopMotionTracking()
 
-            // Unlock orientation at app level
-            print("Unlocking orientation")
+            if self.capViewController == nil,
+               let viewController = self.bridge?.viewController as? CAPBridgeViewController {
+                self.capViewController = viewController
+                if self.defaultSupportedOrientations.isEmpty {
+                    self.defaultSupportedOrientations = viewController.supportedOrientations
+                }
+            }
+
+            let restoredOrientations = self.defaultSupportedOrientations.isEmpty
+                ? self.orientationValues(from: .all)
+                : self.defaultSupportedOrientations
+            self.capViewController?.supportedOrientations = restoredOrientations
+
+            if #available(iOS 16.0, *) {
+                guard let windowScene = self.currentWindowScene() else {
+                    call.reject("No window scene available to unlock orientation")
+                    return
+                }
+
+                windowScene.keyWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+                self.capViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+                windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .all)) { error in
+                    print("Screen orientation unlock geometry update warning: \(error.localizedDescription)")
+                }
+            } else {
+                UINavigationController.attemptRotationToDeviceOrientation()
+            }
 
             call.resolve()
         }
@@ -204,8 +260,19 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
 
     // MARK: - Helper Methods
 
+    private func currentWindowScene() -> UIWindowScene? {
+        if let scene = self.capViewController?.view.window?.windowScene {
+            return scene
+        }
+
+        return UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }
+            ?? UIApplication.shared.connectedScenes.first as? UIWindowScene
+    }
+
     private func getCurrentOrientationType() -> String {
-        let interfaceOrientation = UIApplication.shared.windows.first?.windowScene?.interfaceOrientation ?? .portrait
+        let interfaceOrientation = currentWindowScene()?.interfaceOrientation ?? .portrait
         return mapInterfaceOrientationToString(interfaceOrientation)
     }
 
@@ -268,6 +335,40 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
         default:
             return nil
         }
+    }
+
+    private func preferredInterfaceOrientationValue(from orientationString: String) -> Int {
+        switch orientationString {
+        case "any":
+            return UIInterfaceOrientation.unknown.rawValue
+        case "landscape", "landscape-primary":
+            return UIInterfaceOrientation.landscapeLeft.rawValue
+        case "landscape-secondary":
+            return UIInterfaceOrientation.landscapeRight.rawValue
+        case "portrait-secondary":
+            return UIInterfaceOrientation.portraitUpsideDown.rawValue
+        default:
+            return UIInterfaceOrientation.portrait.rawValue
+        }
+    }
+
+    private func orientationValues(from mask: UIInterfaceOrientationMask) -> [Int] {
+        var values: [Int] = []
+
+        if mask.contains(.portrait) {
+            values.append(UIInterfaceOrientation.portrait.rawValue)
+        }
+        if mask.contains(.portraitUpsideDown) {
+            values.append(UIInterfaceOrientation.portraitUpsideDown.rawValue)
+        }
+        if mask.contains(.landscapeLeft) {
+            values.append(UIInterfaceOrientation.landscapeLeft.rawValue)
+        }
+        if mask.contains(.landscapeRight) {
+            values.append(UIInterfaceOrientation.landscapeRight.rawValue)
+        }
+
+        return values
     }
 }
 
