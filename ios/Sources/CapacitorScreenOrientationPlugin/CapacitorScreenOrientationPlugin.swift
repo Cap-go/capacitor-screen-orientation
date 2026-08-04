@@ -106,9 +106,7 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
                 windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { error in
                     // Geometry update can fail when the requested orientation is already active
                     // or temporarily unavailable; the supportedOrientations mask still applies.
-                    if let error = error {
-                        print("Screen orientation geometry update warning: \(error.localizedDescription)")
-                    }
+                    print("Screen orientation geometry update warning: \(error.localizedDescription)")
                 }
             } else {
                 let orientationValue = self.preferredInterfaceOrientationValue(from: orientationString)
@@ -150,9 +148,7 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
                 windowScene.keyWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
                 self.capViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
                 windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .all)) { error in
-                    if let error = error {
-                        print("Screen orientation unlock geometry update warning: \(error.localizedDescription)")
-                    }
+                    print("Screen orientation unlock geometry update warning: \(error.localizedDescription)")
                 }
             } else {
                 UINavigationController.attemptRotationToDeviceOrientation()
