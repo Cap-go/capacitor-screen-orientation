@@ -7,12 +7,19 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Surface;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executor;
+import org.json.JSONObject;
 
 @CapacitorPlugin(name = "CapacitorScreenOrientation")
 public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEventListener {
@@ -24,6 +31,36 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
     private boolean isTrackingMotion = false;
     private String currentPhysicalOrientation = "portrait-primary";
     private String lastNotifiedOrientation = null;
+    private FoldLayout foldLayout;
+    private Sensor hingeSensor;
+    private boolean hingeRegistered = false;
+    private Float lastHingeAngle = null;
+    private String lastSizeClassKey = null;
+    private final List<PluginCall> pendingHingeCalls = new ArrayList<>();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final SensorEventListener hingeListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            if (event.values.length == 0) {
+                return;
+            }
+            float angle = Math.max(0f, Math.min(360f, event.values[0]));
+            boolean unchanged = lastHingeAngle != null && Math.abs(lastHingeAngle - angle) < 0.5f;
+            lastHingeAngle = angle;
+            if (unchanged && pendingHingeCalls.isEmpty()) {
+                return;
+            }
+            JSObject payload = hingePayload(angle);
+            notifyListeners("hingeAngleChange", payload);
+            resolvePendingHinge(payload);
+            if (!hasListeners("hingeAngleChange")) {
+                stopHingeTracking();
+            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+    };
 
     @Override
     public void load() {
@@ -34,12 +71,26 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
         sensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                hingeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_HINGE_ANGLE);
+            }
         }
+
+        Executor executor = mainHandler::post;
+        foldLayout = new FoldLayout(getActivity(), bridge.getWebView(), executor, (state) -> {
+            notifyListeners("foldStateChange", state);
+            notifySizeClassIfChanged();
+        });
+        notifySizeClassIfChanged();
     }
 
     @Override
     protected void handleOnDestroy() {
         stopMotionTracking();
+        stopHingeTracking();
+        if (foldLayout != null) {
+            foldLayout.stop();
+        }
         super.handleOnDestroy();
     }
 
@@ -57,6 +108,78 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
             currentOrientation = newConfig.orientation;
             notifyOrientationChange();
         }
+        notifySizeClassIfChanged();
+    }
+
+    @PluginMethod(returnType = PluginMethod.RETURN_NONE)
+    @Override
+    public void addListener(PluginCall call) {
+        super.addListener(call);
+        String eventName = call.getString("eventName");
+        if ("hingeAngleChange".equals(eventName)) {
+            startHingeTracking();
+        }
+    }
+
+    @PluginMethod(returnType = PluginMethod.RETURN_NONE)
+    @Override
+    public void removeListener(PluginCall call) {
+        super.removeListener(call);
+        if (!hasListeners("hingeAngleChange")) {
+            stopHingeTracking();
+        }
+    }
+
+    @PluginMethod
+    @Override
+    public void removeAllListeners(PluginCall call) {
+        super.removeAllListeners(call);
+        stopHingeTracking();
+    }
+
+    @PluginMethod
+    public void isDeviceFoldable(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("foldable", foldLayout != null && foldLayout.isFoldable());
+        result.put("supportsTabletop", foldLayout != null && foldLayout.supportsTabletop());
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void getFoldState(PluginCall call) {
+        call.resolve(foldLayout == null ? flatFold() : foldLayout.currentState());
+    }
+
+    @PluginMethod
+    public void getHingeAngle(PluginCall call) {
+        if (lastHingeAngle != null) {
+            call.resolve(hingePayload(lastHingeAngle));
+            return;
+        }
+        if (hingeSensor == null) {
+            call.resolve(hingePayload(null));
+            return;
+        }
+        pendingHingeCalls.add(call);
+        startHingeTracking();
+        mainHandler.postDelayed(
+            () -> {
+                if (!pendingHingeCalls.contains(call)) {
+                    return;
+                }
+                pendingHingeCalls.remove(call);
+                call.resolve(hingePayload(null));
+                if (!hasListeners("hingeAngleChange") && pendingHingeCalls.isEmpty()) {
+                    stopHingeTracking();
+                }
+            },
+            800
+        );
+    }
+
+    @PluginMethod
+    public void getSizeClass(PluginCall call) {
+        call.resolve(currentSizeClass());
     }
 
     @PluginMethod
@@ -196,6 +319,68 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
             default:
                 return ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
         }
+    }
+
+    private JSObject currentSizeClass() {
+        if (foldLayout != null) {
+            return foldLayout.sizeClass();
+        }
+        return FoldLayout.sizeClassOf(0f, 0f);
+    }
+
+    private void notifySizeClassIfChanged() {
+        JSObject sizeClass = currentSizeClass();
+        String key = sizeClass.toString();
+        if (key.equals(lastSizeClassKey)) {
+            return;
+        }
+        lastSizeClassKey = key;
+        notifyListeners("sizeClassChange", sizeClass);
+    }
+
+    private void startHingeTracking() {
+        if (hingeRegistered || hingeSensor == null || sensorManager == null) {
+            return;
+        }
+        hingeRegistered = true;
+        sensorManager.registerListener(hingeListener, hingeSensor, SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    private void stopHingeTracking() {
+        if (!hingeRegistered || sensorManager == null) {
+            return;
+        }
+        hingeRegistered = false;
+        sensorManager.unregisterListener(hingeListener);
+    }
+
+    private void resolvePendingHinge(JSObject payload) {
+        if (pendingHingeCalls.isEmpty()) {
+            return;
+        }
+        List<PluginCall> pending = new ArrayList<>(pendingHingeCalls);
+        pendingHingeCalls.clear();
+        for (PluginCall call : pending) {
+            call.resolve(payload);
+        }
+    }
+
+    private static JSObject hingePayload(Float angle) {
+        JSObject result = new JSObject();
+        if (angle == null) {
+            result.put("angle", JSONObject.NULL);
+        } else {
+            result.put("angle", angle.doubleValue());
+        }
+        return result;
+    }
+
+    private static JSObject flatFold() {
+        JSObject state = new JSObject();
+        state.put("state", "flat");
+        state.put("isSeparating", false);
+        state.put("posture", "flat");
+        return state;
     }
 
     // Motion tracking methods

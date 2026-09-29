@@ -2,11 +2,37 @@ import { WebPlugin } from '@capacitor/core';
 
 import type {
   CapacitorScreenOrientationPlugin,
+  DeviceFoldableResult,
+  FoldState,
+  HingeAngleResult,
   OrientationLockOptions,
   OrientationType,
   ScreenOrientationResult,
+  SizeClass,
   StartOrientationTrackingOptions,
 } from './definitions';
+
+const FLAT_FOLD: FoldState = { state: 'flat', isSeparating: false, posture: 'flat' };
+
+export function sizeClassOf(width: number, height: number): SizeClass {
+  const widthClass =
+    width >= 1600
+      ? 'extraLarge'
+      : width >= 1200
+        ? 'large'
+        : width >= 840
+          ? 'expanded'
+          : width >= 600
+            ? 'medium'
+            : 'compact';
+  const heightClass = height >= 900 ? 'expanded' : height >= 480 ? 'medium' : 'compact';
+  return {
+    horizontal: width >= 600 ? 'regular' : 'compact',
+    vertical: height >= 480 ? 'regular' : 'compact',
+    widthClass,
+    heightClass,
+  };
+}
 
 export class CapacitorScreenOrientationWeb extends WebPlugin implements CapacitorScreenOrientationPlugin {
   private readonly pluginVersion = '1.0.0';
@@ -20,7 +46,16 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
         });
       });
     }
+    window.addEventListener('resize', () => {
+      const next = this.readSizeClass();
+      const previous = JSON.stringify(this.lastSizeClass);
+      if (previous === JSON.stringify(next)) return;
+      this.lastSizeClass = next;
+      this.notifyListeners('sizeClassChange', next);
+    });
   }
+
+  private lastSizeClass: SizeClass | null = null;
 
   async orientation(): Promise<ScreenOrientationResult> {
     if (!window.screen?.orientation) {
@@ -78,8 +113,28 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
     };
   }
 
+  async isDeviceFoldable(): Promise<DeviceFoldableResult> {
+    return { foldable: false, supportsTabletop: false };
+  }
+
+  async getFoldState(): Promise<FoldState> {
+    return FLAT_FOLD;
+  }
+
+  async getHingeAngle(): Promise<HingeAngleResult> {
+    return { angle: null };
+  }
+
+  async getSizeClass(): Promise<SizeClass> {
+    return this.readSizeClass();
+  }
+
   async getPluginVersion(): Promise<{ version: string }> {
     return { version: this.pluginVersion };
+  }
+
+  private readSizeClass(): SizeClass {
+    return sizeClassOf(window.innerWidth, window.innerHeight);
   }
 
   private mapOrientationType(type: string): OrientationType {

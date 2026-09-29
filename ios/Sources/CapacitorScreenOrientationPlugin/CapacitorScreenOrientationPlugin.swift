@@ -21,6 +21,10 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "startOrientationTracking", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stopOrientationTracking", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "isOrientationLocked", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "isDeviceFoldable", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getFoldState", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getHingeAngle", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getSizeClass", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise)
     ]
 
@@ -30,6 +34,7 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
     private var lastNotifiedOrientation: String?
     private var capViewController: CAPBridgeViewController?
     private var defaultSupportedOrientations: [Int] = []
+    private var lastSizeClassKey: String?
 
     override public func load() {
         // Listen for device orientation changes from system
@@ -47,6 +52,7 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
             self.capViewController = viewController
             self.defaultSupportedOrientations = viewController.supportedOrientations
         }
+        notifySizeClassIfChanged()
     }
 
     deinit {
@@ -64,6 +70,27 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
         if orientation.isValidInterfaceOrientation {
             notifyOrientationChange(fromDeviceOrientation: orientation)
         }
+        notifySizeClassIfChanged()
+    }
+
+    @objc func isDeviceFoldable(_ call: CAPPluginCall) {
+        call.resolve(["foldable": false, "supportsTabletop": false])
+    }
+
+    @objc func getFoldState(_ call: CAPPluginCall) {
+        call.resolve([
+            "state": "flat",
+            "isSeparating": false,
+            "posture": "flat"
+        ])
+    }
+
+    @objc func getHingeAngle(_ call: CAPPluginCall) {
+        call.resolve(["angle": NSNull()])
+    }
+
+    @objc func getSizeClass(_ call: CAPPluginCall) {
+        call.resolve(currentSizeClass())
     }
 
     @objc func orientation(_ call: CAPPluginCall) {
@@ -314,6 +341,48 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
         default:
             return "portrait-primary"
         }
+    }
+
+    private func currentSizeClass() -> [String: Any] {
+        let view = self.bridge?.webView
+        let width = Double(view?.bounds.width ?? UIScreen.main.bounds.width)
+        let height = Double(view?.bounds.height ?? UIScreen.main.bounds.height)
+        let traits = view?.traitCollection
+        let horizontal = sizeName(traits?.horizontalSizeClass, points: width, regularAt: 600)
+        let vertical = sizeName(traits?.verticalSizeClass, points: height, regularAt: 480)
+        return [
+            "horizontal": horizontal,
+            "vertical": vertical,
+            "widthClass": materialWidth(width),
+            "heightClass": height >= 900 ? "expanded" : height >= 480 ? "medium" : "compact"
+        ]
+    }
+
+    private func notifySizeClassIfChanged() {
+        let sizeClass = currentSizeClass()
+        let key = "\(sizeClass["horizontal"] ?? "")-\(sizeClass["vertical"] ?? "")-\(sizeClass["widthClass"] ?? "")-\(sizeClass["heightClass"] ?? "")"
+        guard key != lastSizeClassKey else { return }
+        lastSizeClassKey = key
+        notifyListeners("sizeClassChange", data: sizeClass)
+    }
+
+    private func sizeName(_ sizeClass: UIUserInterfaceSizeClass?, points: Double, regularAt: Double) -> String {
+        switch sizeClass {
+        case .some(.regular):
+            return "regular"
+        case .some(.compact):
+            return "compact"
+        default:
+            return points >= regularAt ? "regular" : "compact"
+        }
+    }
+
+    private func materialWidth(_ width: Double) -> String {
+        if width >= 1600 { return "extraLarge" }
+        if width >= 1200 { return "large" }
+        if width >= 840 { return "expanded" }
+        if width >= 600 { return "medium" }
+        return "compact"
     }
 
     private func getOrientationMask(from orientationString: String) -> UIInterfaceOrientationMask? {

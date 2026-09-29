@@ -131,6 +131,40 @@ const actions = [
     },
   },
   {
+    id: 'get-fold-state',
+    label: 'Get fold state',
+    description: 'Reads whether the device is flat, tabletop, or book, plus the hinge bounds.',
+    inputs: [],
+    run: async () => {
+      const foldable = await plugin.isDeviceFoldable();
+      const state = await plugin.getFoldState();
+      const angle = await plugin.getHingeAngle();
+      const sizeClass = await plugin.getSizeClass();
+      return { foldable, state, angle, sizeClass };
+    },
+  },
+  {
+    id: 'watch-fold',
+    label: 'Watch fold and size class',
+    description: 'Listens for fold, hinge angle, and size class changes.',
+    inputs: [],
+    run: async () => {
+      await plugin.addListener('foldStateChange', (result) => {
+        const output = document.getElementById('plugin-output');
+        output.textContent = `Fold changed: ${JSON.stringify(result, null, 2)}`;
+      });
+      await plugin.addListener('hingeAngleChange', (result) => {
+        const output = document.getElementById('plugin-output');
+        output.textContent = `Hinge angle: ${JSON.stringify(result, null, 2)}`;
+      });
+      await plugin.addListener('sizeClassChange', (result) => {
+        const output = document.getElementById('plugin-output');
+        output.textContent = `Size class: ${JSON.stringify(result, null, 2)}`;
+      });
+      return 'Listening for fold, hinge, and size class changes.';
+    },
+  },
+  {
     id: 'get-version',
     label: 'Get plugin version',
     description: 'Returns the native plugin version.',
