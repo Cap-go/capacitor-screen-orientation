@@ -35,6 +35,16 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
     private var capViewController: CAPBridgeViewController?
     private var defaultSupportedOrientations: [Int] = []
     private var lastSizeClassKey: String?
+    private var sizeClassProbe: SizeClassProbe?
+
+    private final class SizeClassProbe: UIView {
+        var onLayout: (() -> Void)?
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            onLayout?()
+        }
+    }
 
     override public func load() {
         // Listen for device orientation changes from system
@@ -52,16 +62,22 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
             self.capViewController = viewController
             self.defaultSupportedOrientations = viewController.supportedOrientations
         }
-        notifySizeClassIfChanged()
+        DispatchQueue.main.async {
+            self.attachSizeClassProbe()
+            self.notifySizeClassIfChanged()
+        }
     }
 
     deinit {
         stopMotionTracking()
+        sizeClassProbe?.removeFromSuperview()
         UIDevice.current.endGeneratingDeviceOrientationNotifications()
         NotificationCenter.default.removeObserver(self)
     }
 
     @objc private func orientationDidChange() {
+        notifySizeClassIfChanged()
+
         // Skip system orientation changes when motion tracking is active
         // to avoid duplicate events
         guard !isTrackingWithMotion else { return }
@@ -70,7 +86,6 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
         if orientation.isValidInterfaceOrientation {
             notifyOrientationChange(fromDeviceOrientation: orientation)
         }
-        notifySizeClassIfChanged()
     }
 
     @objc func isDeviceFoldable(_ call: CAPPluginCall) {
@@ -90,7 +105,9 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func getSizeClass(_ call: CAPPluginCall) {
-        call.resolve(currentSizeClass())
+        DispatchQueue.main.async {
+            call.resolve(self.currentSizeClass())
+        }
     }
 
     @objc func orientation(_ call: CAPPluginCall) {
@@ -356,6 +373,19 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
             "widthClass": materialWidth(width),
             "heightClass": height >= 900 ? "expanded" : height >= 480 ? "medium" : "compact"
         ]
+    }
+
+    private func attachSizeClassProbe() {
+        guard sizeClassProbe == nil, let webView = bridge?.webView else { return }
+        let probe = SizeClassProbe(frame: webView.bounds)
+        probe.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        probe.isUserInteractionEnabled = false
+        probe.backgroundColor = .clear
+        probe.onLayout = { [weak self] in
+            self?.notifySizeClassIfChanged()
+        }
+        webView.addSubview(probe)
+        sizeClassProbe = probe
     }
 
     private func notifySizeClassIfChanged() {

@@ -98,6 +98,8 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
     protected void handleOnConfigurationChanged(Configuration newConfig) {
         super.handleOnConfigurationChanged(newConfig);
 
+        notifySizeClassIfChanged();
+
         // Skip system orientation changes when motion tracking is active
         // to avoid duplicate events
         if (isTrackingMotion) {
@@ -108,7 +110,6 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
             currentOrientation = newConfig.orientation;
             notifyOrientationChange();
         }
-        notifySizeClassIfChanged();
     }
 
     @PluginMethod(returnType = PluginMethod.RETURN_NONE)
@@ -117,7 +118,7 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
         super.addListener(call);
         String eventName = call.getString("eventName");
         if ("hingeAngleChange".equals(eventName)) {
-            startHingeTracking();
+            mainHandler.post(this::startHingeTracking);
         }
     }
 
@@ -126,7 +127,7 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
     public void removeListener(PluginCall call) {
         super.removeListener(call);
         if (!hasListeners("hingeAngleChange")) {
-            stopHingeTracking();
+            mainHandler.post(this::stopHingeTracking);
         }
     }
 
@@ -134,7 +135,7 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
     @Override
     public void removeAllListeners(PluginCall call) {
         super.removeAllListeners(call);
-        stopHingeTracking();
+        mainHandler.post(this::stopHingeTracking);
     }
 
     @PluginMethod
@@ -152,29 +153,31 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
 
     @PluginMethod
     public void getHingeAngle(PluginCall call) {
-        if (lastHingeAngle != null) {
-            call.resolve(hingePayload(lastHingeAngle));
-            return;
-        }
-        if (hingeSensor == null) {
-            call.resolve(hingePayload(null));
-            return;
-        }
-        pendingHingeCalls.add(call);
-        startHingeTracking();
-        mainHandler.postDelayed(
-            () -> {
-                if (!pendingHingeCalls.contains(call)) {
-                    return;
-                }
-                pendingHingeCalls.remove(call);
+        mainHandler.post(() -> {
+            if (hingeRegistered && lastHingeAngle != null) {
+                call.resolve(hingePayload(lastHingeAngle));
+                return;
+            }
+            if (hingeSensor == null) {
                 call.resolve(hingePayload(null));
-                if (!hasListeners("hingeAngleChange") && pendingHingeCalls.isEmpty()) {
-                    stopHingeTracking();
-                }
-            },
-            800
-        );
+                return;
+            }
+            pendingHingeCalls.add(call);
+            startHingeTracking();
+            mainHandler.postDelayed(
+                () -> {
+                    if (!pendingHingeCalls.contains(call)) {
+                        return;
+                    }
+                    pendingHingeCalls.remove(call);
+                    call.resolve(hingePayload(null));
+                    if (!hasListeners("hingeAngleChange") && pendingHingeCalls.isEmpty()) {
+                        stopHingeTracking();
+                    }
+                },
+                800
+            );
+        });
     }
 
     @PluginMethod
@@ -343,7 +346,7 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
             return;
         }
         hingeRegistered = true;
-        sensorManager.registerListener(hingeListener, hingeSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(hingeListener, hingeSensor, SensorManager.SENSOR_DELAY_NORMAL, mainHandler);
     }
 
     private void stopHingeTracking() {

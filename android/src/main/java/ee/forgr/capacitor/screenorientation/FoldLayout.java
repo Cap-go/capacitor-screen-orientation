@@ -48,7 +48,12 @@ final class FoldLayout implements Consumer<WindowLayoutInfo> {
     }
 
     private FoldingFeature firstFold() {
-        WindowLayoutInfo info = adapter.getCurrentWindowLayoutInfo(activity);
+        WindowLayoutInfo info;
+        try {
+            info = adapter.getCurrentWindowLayoutInfo(activity);
+        } catch (UnsupportedOperationException ignored) {
+            return null;
+        }
         for (DisplayFeature feature : info.getDisplayFeatures()) {
             if (feature instanceof FoldingFeature) {
                 sawFold = true;
