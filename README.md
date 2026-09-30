@@ -20,10 +20,28 @@ Screen orientation plugin with support for detecting true physical device orient
 - 🔒 **Detect if orientation lock is enabled** by comparing physical vs UI orientation
 - 🔄 Real-time orientation change detection
 - 🎯 Lock orientation to specific modes
-- 📖 **Foldable posture** on Android: flat, tabletop, or book, plus hinge angle and window size class
+- 📖 **iPhone Duo and Android foldables**: flat, book, or tabletop, hinge angle, which display is showing, and where iPhone Duo puts the tab bar
 - 🌐 Web platform support
 
 **Important Note:** This plugin can detect the physical orientation of the device using motion sensors, but it **cannot bypass the UI orientation lock**. The screen will still respect the user's orientation lock setting. This is useful for knowing how the device is physically held vs. how the UI is displayed.
+
+## iPhone Duo
+
+iPhone Duo (iOS 27.1 or later) is a foldable iPhone. The same fold calls used on Android report it:
+
+| Pose | `posture` | Hinge |
+| --- | --- | --- |
+| Open flat, or closed on the outer display | `flat` | `180` open, `0` closed |
+| Held half-open like a book | `book` | vertical hinge, about `20`–`160` |
+| Propped half-open like a laptop | `tabletop` | horizontal hinge |
+
+Closed on the cover screen, the iPhone Duo simulator reports the outer display and a hinge at 0°:
+
+![iPhone Duo simulator closed on the cover screen, reporting flat, outer display, hinge 0 degrees](screenshots/ios-iphone-duo.webp)
+
+`activeDisplay` is `inner` on the large folding screen and `outer` on the cover screen. `getReservedRegions()` returns the fold (`division`) and anything covering the glass, such as the camera (`occlusion`). `getBarPlacement()` says whether iOS moved the tab bar to the side, and how wide that bar is.
+
+A regular iPhone, and iOS before 27.1, stays `flat` with no hinge angle. Android foldables report posture and hinge angle the same way. Rear display and dual-screen modes stay on Android.
 
 ## Documentation
 
@@ -133,8 +151,10 @@ await ScreenOrientation.stopOrientationTracking();
 // Remove listener
 await listener.remove();
 
-// Foldables: flat, tabletop, or book. Flat on phones that do not fold.
-const { posture } = await ScreenOrientation.getFoldState();
+// iPhone Duo and Android foldables. Flat on phones that do not fold.
+const { posture, activeDisplay } = await ScreenOrientation.getFoldState();
+const { angle, status } = await ScreenOrientation.getHingeAngle();
+const { verticalBarEdge, inset } = await ScreenOrientation.getBarPlacement();
 const { widthClass } = await ScreenOrientation.getSizeClass();
 ```
 
@@ -151,6 +171,9 @@ const { widthClass } = await ScreenOrientation.getSizeClass();
 * [`isDeviceFoldable()`](#isdevicefoldable)
 * [`getFoldState()`](#getfoldstate)
 * [`getHingeAngle()`](#gethingeangle)
+* [`getReservedRegions()`](#getreservedregions)
+* [`getBarPlacement()`](#getbarplacement)
+* [`setVerticalBarBehavior(...)`](#setverticalbarbehavior)
 * [`getSizeClass()`](#getsizeclass)
 * [`addListener('screenOrientationChange', ...)`](#addlistenerscreenorientationchange-)
 * [`addListener('foldStateChange', ...)`](#addlistenerfoldstatechange-)
@@ -295,7 +318,7 @@ isDeviceFoldable() => Promise<DeviceFoldableResult>
 
 Whether this device folds, and whether it can stand half-open like a laptop.
 
-Both flags are `false` on web and iOS.
+Both flags are `false` on web, on Android phones that do not fold, and on iOS except iPhone Duo (iOS 27.1 or later).
 
 **Returns:** <code>Promise&lt;<a href="#devicefoldableresult">DeviceFoldableResult</a>&gt;</code>
 
@@ -332,6 +355,63 @@ Read the hinge angle in degrees.
 `0` is closed and `180` is flat. `angle` is `null` without a hinge sensor.
 
 **Returns:** <code>Promise&lt;<a href="#hingeangleresult">HingeAngleResult</a>&gt;</code>
+
+**Since:** 8.2.0
+
+--------------------
+
+
+### getReservedRegions()
+
+```typescript
+getReservedRegions() => Promise<{ regions: ReservedRegion[]; }>
+```
+
+Read the fold and anything covering the screen.
+
+iPhone Duo reports the fold, the vertical status bar area, and the under-display camera.
+Resolves to an empty list on Android, web, and iOS before 27.1.
+
+**Returns:** <code>Promise&lt;{ regions: ReservedRegion[]; }&gt;</code>
+
+**Since:** 8.2.0
+
+--------------------
+
+
+### getBarPlacement()
+
+```typescript
+getBarPlacement() => Promise<BarPlacement>
+```
+
+Read where iPhone Duo puts native tab bars and toolbars.
+
+`verticalBarEdge` is `null` when bars stay horizontal, and always on Android and web.
+
+**Returns:** <code>Promise&lt;<a href="#barplacement">BarPlacement</a>&gt;</code>
+
+**Since:** 8.2.0
+
+--------------------
+
+
+### setVerticalBarBehavior(...)
+
+```typescript
+setVerticalBarBehavior(options: { behavior: 'automatic' | 'disabled'; }) => Promise<{ applied: boolean; }>
+```
+
+Choose whether iPhone Duo may move this app's bars to the side.
+
+Resolves to `{ applied: false }` unless the app's bridge view controller opts in.
+Android and web always resolve to `{ applied: false }`.
+
+| Param         | Type                                                  | Description                                                              |
+| ------------- | ----------------------------------------------------- | ------------------------------------------------------------------------ |
+| **`options`** | <code>{ behavior: 'automatic' \| 'disabled'; }</code> | `automatic` lets the system move bars. `disabled` keeps them horizontal. |
+
+**Returns:** <code>Promise&lt;{ applied: boolean; }&gt;</code>
 
 **Since:** 8.2.0
 
@@ -401,7 +481,7 @@ addListener(eventName: 'hingeAngleChange', listenerFunc: (event: HingeAngleResul
 Listen for hinge angle changes.
 
 On Android the hinge sensor runs only while at least one listener is registered.
-Never fires on web or iOS.
+On iOS this fires on iPhone Duo (iOS 27.1 or later). Never fires on web.
 
 | Param              | Type                                                                              | Description                                 |
 | ------------------ | --------------------------------------------------------------------------------- | ------------------------------------------- |
@@ -523,16 +603,20 @@ Whether this device can fold.
 
 Current fold of the window.
 
-Phones that do not fold, iOS, and web resolve to a flat state.
+Phones that do not fold, and iOS before 27.1, resolve to a flat state.
+iPhone Duo reports `book`, `tabletop`, or `flat`, and which display is in front.
 
-| Prop                   | Type                                                          | Description                                                        | Since |
-| ---------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------ | ----- |
-| **`state`**            | <code><a href="#foldstatevalue">FoldStateValue</a></code>     | Posture of the fold.                                               | 8.2.0 |
-| **`isSeparating`**     | <code>boolean</code>                                          | Whether the fold splits the web view into two areas.               | 8.2.0 |
-| **`posture`**          | <code><a href="#foldposture">FoldPosture</a></code>           | How the device is held.                                            | 8.2.0 |
-| **`hingeOrientation`** | <code><a href="#hingeorientation">HingeOrientation</a></code> | Direction of the hinge. Omitted when there is no fold.             | 8.2.0 |
-| **`hingeBounds`**      | <code><a href="#foldbounds">FoldBounds</a></code>             | Position of the fold in CSS pixels. Omitted when there is no fold. | 8.2.0 |
-| **`occludedBounds`**   | <code><a href="#foldbounds">FoldBounds</a></code>             | Area the hinge covers. Present when the hinge has a physical gap.  | 8.2.0 |
+| Prop                   | Type                                                                       | Description                                                                                                         | Since |
+| ---------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----- |
+| **`state`**            | <code><a href="#foldstatevalue">FoldStateValue</a></code>                  | Posture of the fold.                                                                                                | 8.2.0 |
+| **`isSeparating`**     | <code>boolean</code>                                                       | Whether the fold splits the web view into two areas.                                                                | 8.2.0 |
+| **`posture`**          | <code><a href="#foldposture">FoldPosture</a></code>                        | How the device is held.                                                                                             | 8.2.0 |
+| **`hingeOrientation`** | <code><a href="#hingeorientation">HingeOrientation</a></code>              | Direction of the hinge. Omitted when there is no fold.                                                              | 8.2.0 |
+| **`hingeBounds`**      | <code><a href="#foldbounds">FoldBounds</a></code>                          | Position of the fold in CSS pixels. Omitted when there is no fold.                                                  | 8.2.0 |
+| **`occludedBounds`**   | <code><a href="#foldbounds">FoldBounds</a></code>                          | Area the hinge covers. Present when the hinge has a physical gap.                                                   | 8.2.0 |
+| **`activeDisplay`**    | <code>'inner' \| 'outer'</code>                                            | Which display is showing the app on iPhone Duo. Omitted on Android, web, and iOS before 27.1.                       | 8.2.0 |
+| **`hingeMargins`**     | <code>{ top: number; right: number; bottom: number; left: number; }</code> | Space the system keeps clear around the fold, in CSS pixels. iPhone Duo reports 20 on each side of a vertical fold. | 8.2.0 |
+| **`cameraBounds`**     | <code>FoldBounds[]</code>                                                  | Areas covering the display, such as the iPhone Duo camera. Omitted when there are none.                             | 8.2.0 |
 
 
 #### FoldBounds
@@ -553,9 +637,37 @@ Angle between the two halves of a foldable, in degrees.
 
 `0` is closed and `180` is flat. `angle` is `null` when the device has no hinge sensor.
 
-| Prop        | Type                        | Description                                                    | Since |
-| ----------- | --------------------------- | -------------------------------------------------------------- | ----- |
-| **`angle`** | <code>number \| null</code> | Hinge angle in degrees, or `null` when no sensor is available. | 8.2.0 |
+| Prop         | Type                                                            | Description                                                                   | Since |
+| ------------ | --------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----- |
+| **`angle`**  | <code>number \| null</code>                                     | Hinge angle in degrees, or `null` when no sensor is available.                | 8.2.0 |
+| **`status`** | <code>'closed' \| 'partiallyOpen' \| 'fullyOpen' \| null</code> | How far open iPhone Duo is, as the system sees it. `null` on Android and web. | 8.2.0 |
+
+
+#### ReservedRegion
+
+A region the system reserves on iPhone Duo.
+
+`division` is the fold. `occlusion` is something covering the display, such as the camera.
+
+| Prop           | Type                                                                       | Description                                                                | Since |
+| -------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----- |
+| **`kind`**     | <code>'division' \| 'occlusion'</code>                                     | What the region is.                                                        | 8.2.0 |
+| **`isActive`** | <code>boolean</code>                                                       | Whether the region applies right now. An inactive division is a flat fold. | 8.2.0 |
+| **`x`**        | <code>number</code>                                                        | Left edge, in CSS pixels.                                                  | 8.2.0 |
+| **`y`**        | <code>number</code>                                                        | Top edge, in CSS pixels.                                                   | 8.2.0 |
+| **`width`**    | <code>number</code>                                                        | Width in CSS pixels.                                                       | 8.2.0 |
+| **`height`**   | <code>number</code>                                                        | Height in CSS pixels.                                                      | 8.2.0 |
+| **`margins`**  | <code>{ top: number; right: number; bottom: number; left: number; }</code> | Space to keep clear around the region, in CSS pixels.                      | 8.2.0 |
+
+
+#### BarPlacement
+
+Where iPhone Duo places native bars.
+
+| Prop                  | Type                                         | Description                                                                           | Since |
+| --------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------- | ----- |
+| **`verticalBarEdge`** | <code>'leading' \| 'trailing' \| null</code> | The edge the system moves tab bars and toolbars to. `null` when they stay horizontal. | 8.2.0 |
+| **`inset`**           | <code>number</code>                          | How much room the vertical bar takes, in points. `0` when bars stay horizontal.       | 8.2.0 |
 
 
 #### SizeClass

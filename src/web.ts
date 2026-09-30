@@ -1,10 +1,12 @@
 import { WebPlugin } from '@capacitor/core';
 
 import type {
+  BarPlacement,
   CapacitorScreenOrientationPlugin,
   DeviceFoldableResult,
   FoldState,
   HingeAngleResult,
+  ReservedRegion,
   OrientationLockOptions,
   OrientationType,
   ScreenOrientationResult,
@@ -122,7 +124,19 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
   }
 
   async getHingeAngle(): Promise<HingeAngleResult> {
-    return { angle: null };
+    return { angle: null, status: null };
+  }
+
+  async getReservedRegions(): Promise<{ regions: ReservedRegion[] }> {
+    return { regions: [] };
+  }
+
+  async getBarPlacement(): Promise<BarPlacement> {
+    return { verticalBarEdge: null, inset: 0 };
+  }
+
+  async setVerticalBarBehavior(): Promise<{ applied: boolean }> {
+    return { applied: false };
   }
 
   async getSizeClass(): Promise<SizeClass> {

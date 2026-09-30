@@ -24,6 +24,9 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "isDeviceFoldable", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getFoldState", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getHingeAngle", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getReservedRegions", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getBarPlacement", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setVerticalBarBehavior", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getSizeClass", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise)
     ]
@@ -65,6 +68,12 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
         DispatchQueue.main.async {
             self.attachSizeClassProbe()
             self.notifySizeClassIfChanged()
+            if let view = self.bridge?.webView {
+                IPhoneDuoFold.shared.observe(in: view) { [weak self] in
+                    self?.notifyListeners("hingeAngleChange", data: IPhoneDuoFold.shared.hingeAngle())
+                    self?.notifyListeners("foldStateChange", data: IPhoneDuoFold.shared.foldState(in: view))
+                }
+            }
         }
     }
 
@@ -89,19 +98,38 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func isDeviceFoldable(_ call: CAPPluginCall) {
-        call.resolve(["foldable": false, "supportsTabletop": false])
+        DispatchQueue.main.async {
+            let foldable = IPhoneDuoFold.shared.isFoldable(in: self.bridge?.webView)
+            call.resolve(["foldable": foldable, "supportsTabletop": foldable])
+        }
     }
 
     @objc func getFoldState(_ call: CAPPluginCall) {
-        call.resolve([
-            "state": "flat",
-            "isSeparating": false,
-            "posture": "flat"
-        ])
+        DispatchQueue.main.async {
+            call.resolve(IPhoneDuoFold.shared.foldState(in: self.bridge?.webView))
+        }
     }
 
     @objc func getHingeAngle(_ call: CAPPluginCall) {
-        call.resolve(["angle": NSNull()])
+        DispatchQueue.main.async {
+            call.resolve(IPhoneDuoFold.shared.hingeAngle())
+        }
+    }
+
+    @objc func getReservedRegions(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            call.resolve(IPhoneDuoFold.shared.reservedRegions(in: self.bridge?.webView))
+        }
+    }
+
+    @objc func getBarPlacement(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            call.resolve(IPhoneDuoFold.shared.barPlacement(in: self.bridge?.webView))
+        }
+    }
+
+    @objc func setVerticalBarBehavior(_ call: CAPPluginCall) {
+        call.resolve(["applied": false])
     }
 
     @objc func getSizeClass(_ call: CAPPluginCall) {
