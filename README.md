@@ -20,6 +20,7 @@ Screen orientation plugin with support for detecting true physical device orient
 - 🔒 **Detect if orientation lock is enabled** by comparing physical vs UI orientation
 - 🔄 Real-time orientation change detection
 - 🎯 Lock orientation to specific modes
+- 📖 **Foldable posture** on Android: flat, tabletop, or book, plus hinge angle and window size class
 - 🌐 Web platform support
 
 **Important Note:** This plugin can detect the physical orientation of the device using motion sensors, but it **cannot bypass the UI orientation lock**. The screen will still respect the user's orientation lock setting. This is useful for knowing how the device is physically held vs. how the UI is displayed.
@@ -131,6 +132,10 @@ await ScreenOrientation.stopOrientationTracking();
 
 // Remove listener
 await listener.remove();
+
+// Foldables: flat, tabletop, or book. Flat on phones that do not fold.
+const { posture } = await ScreenOrientation.getFoldState();
+const { widthClass } = await ScreenOrientation.getSizeClass();
 ```
 
 ## API
@@ -143,7 +148,14 @@ await listener.remove();
 * [`startOrientationTracking(...)`](#startorientationtracking)
 * [`stopOrientationTracking()`](#stoporientationtracking)
 * [`isOrientationLocked()`](#isorientationlocked)
+* [`isDeviceFoldable()`](#isdevicefoldable)
+* [`getFoldState()`](#getfoldstate)
+* [`getHingeAngle()`](#gethingeangle)
+* [`getSizeClass()`](#getsizeclass)
 * [`addListener('screenOrientationChange', ...)`](#addlistenerscreenorientationchange-)
+* [`addListener('foldStateChange', ...)`](#addlistenerfoldstatechange-)
+* [`addListener('hingeAngleChange', ...)`](#addlistenerhingeanglechange-)
+* [`addListener('sizeClassChange', ...)`](#addlistenersizeclasschange-)
 * [`removeAllListeners()`](#removealllisteners)
 * [`getPluginVersion()`](#getpluginversion)
 * [Interfaces](#interfaces)
@@ -275,26 +287,150 @@ Works on both iOS (Core Motion) and Android (Accelerometer).
 --------------------
 
 
+### isDeviceFoldable()
+
+```typescript
+isDeviceFoldable() => Promise<DeviceFoldableResult>
+```
+
+Whether this device folds, and whether it can stand half-open like a laptop.
+
+Both flags are `false` on web and iOS.
+
+**Returns:** <code>Promise&lt;<a href="#devicefoldableresult">DeviceFoldableResult</a>&gt;</code>
+
+**Since:** 8.2.0
+
+--------------------
+
+
+### getFoldState()
+
+```typescript
+getFoldState() => Promise<FoldState>
+```
+
+Read the current fold.
+
+Resolves to a flat state when the device has no fold.
+
+**Returns:** <code>Promise&lt;<a href="#foldstate">FoldState</a>&gt;</code>
+
+**Since:** 8.2.0
+
+--------------------
+
+
+### getHingeAngle()
+
+```typescript
+getHingeAngle() => Promise<HingeAngleResult>
+```
+
+Read the hinge angle in degrees.
+
+`0` is closed and `180` is flat. `angle` is `null` without a hinge sensor.
+
+**Returns:** <code>Promise&lt;<a href="#hingeangleresult">HingeAngleResult</a>&gt;</code>
+
+**Since:** 8.2.0
+
+--------------------
+
+
+### getSizeClass()
+
+```typescript
+getSizeClass() => Promise<SizeClass>
+```
+
+Read the window size classes.
+
+**Returns:** <code>Promise&lt;<a href="#sizeclass">SizeClass</a>&gt;</code>
+
+**Since:** 8.2.0
+
+--------------------
+
+
 ### addListener('screenOrientationChange', ...)
 
 ```typescript
 addListener(eventName: 'screenOrientationChange', listenerFunc: (result: ScreenOrientationResult) => void) => Promise<PluginListenerHandle>
 ```
 
-Listen for screen orientation changes.
-
-Registers a listener that will be called whenever the screen orientation changes.
-If motion-based tracking is enabled, this will also fire for orientation changes
-detected by motion sensors even when orientation lock is enabled.
-
-| Param              | Type                                                                                             | Description                                         |
-| ------------------ | ------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| **`eventName`**    | <code>'screenOrientationChange'</code>                                                           | The event name. Must be 'screenOrientationChange'.  |
-| **`listenerFunc`** | <code>(result: <a href="#screenorientationresult">ScreenOrientationResult</a>) =&gt; void</code> | Callback function invoked when orientation changes. |
+| Param              | Type                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| **`eventName`**    | <code>'screenOrientationChange'</code>                                                           |
+| **`listenerFunc`** | <code>(result: <a href="#screenorientationresult">ScreenOrientationResult</a>) =&gt; void</code> |
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
-**Since:** 1.0.0
+--------------------
+
+
+### addListener('foldStateChange', ...)
+
+```typescript
+addListener(eventName: 'foldStateChange', listenerFunc: (state: FoldState) => void) => Promise<PluginListenerHandle>
+```
+
+Listen for fold changes.
+
+On a foldable this also fires when the device rotates, because the hinge
+bounds rotate with the window.
+
+| Param              | Type                                                                | Description                                |
+| ------------------ | ------------------------------------------------------------------- | ------------------------------------------ |
+| **`eventName`**    | <code>'foldStateChange'</code>                                      | The event name. Must be 'foldStateChange'. |
+| **`listenerFunc`** | <code>(state: <a href="#foldstate">FoldState</a>) =&gt; void</code> | Callback invoked with the new fold state.  |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 8.2.0
+
+--------------------
+
+
+### addListener('hingeAngleChange', ...)
+
+```typescript
+addListener(eventName: 'hingeAngleChange', listenerFunc: (event: HingeAngleResult) => void) => Promise<PluginListenerHandle>
+```
+
+Listen for hinge angle changes.
+
+On Android the hinge sensor runs only while at least one listener is registered.
+Never fires on web or iOS.
+
+| Param              | Type                                                                              | Description                                 |
+| ------------------ | --------------------------------------------------------------------------------- | ------------------------------------------- |
+| **`eventName`**    | <code>'hingeAngleChange'</code>                                                   | The event name. Must be 'hingeAngleChange'. |
+| **`listenerFunc`** | <code>(event: <a href="#hingeangleresult">HingeAngleResult</a>) =&gt; void</code> | Callback invoked with the angle in degrees. |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 8.2.0
+
+--------------------
+
+
+### addListener('sizeClassChange', ...)
+
+```typescript
+addListener(eventName: 'sizeClassChange', listenerFunc: (sizeClass: SizeClass) => void) => Promise<PluginListenerHandle>
+```
+
+Listen for size class changes, such as unfolding, rotating, or resizing.
+
+| Param              | Type                                                                    | Description                                |
+| ------------------ | ----------------------------------------------------------------------- | ------------------------------------------ |
+| **`eventName`**    | <code>'sizeClassChange'</code>                                          | The event name. Must be 'sizeClassChange'. |
+| **`listenerFunc`** | <code>(sizeClass: <a href="#sizeclass">SizeClass</a>) =&gt; void</code> | Callback invoked with the new size class.  |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 8.2.0
 
 --------------------
 
@@ -373,6 +509,71 @@ Result returned by the isOrientationLocked() method.
 | **`uiOrientation`**       | <code><a href="#orientationtype">OrientationType</a></code> | The current UI orientation reported by the system.                                                                                                                                                                                                                                                               | 1.0.0 |
 
 
+#### DeviceFoldableResult
+
+Whether this device can fold.
+
+| Prop                   | Type                 | Description                                   | Since |
+| ---------------------- | -------------------- | --------------------------------------------- | ----- |
+| **`foldable`**         | <code>boolean</code> | Whether the device has a fold.                | 8.2.0 |
+| **`supportsTabletop`** | <code>boolean</code> | Whether it can stand half-open like a laptop. | 8.2.0 |
+
+
+#### FoldState
+
+Current fold of the window.
+
+Phones that do not fold, iOS, and web resolve to a flat state.
+
+| Prop                   | Type                                                          | Description                                                        | Since |
+| ---------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------ | ----- |
+| **`state`**            | <code><a href="#foldstatevalue">FoldStateValue</a></code>     | Posture of the fold.                                               | 8.2.0 |
+| **`isSeparating`**     | <code>boolean</code>                                          | Whether the fold splits the web view into two areas.               | 8.2.0 |
+| **`posture`**          | <code><a href="#foldposture">FoldPosture</a></code>           | How the device is held.                                            | 8.2.0 |
+| **`hingeOrientation`** | <code><a href="#hingeorientation">HingeOrientation</a></code> | Direction of the hinge. Omitted when there is no fold.             | 8.2.0 |
+| **`hingeBounds`**      | <code><a href="#foldbounds">FoldBounds</a></code>             | Position of the fold in CSS pixels. Omitted when there is no fold. | 8.2.0 |
+| **`occludedBounds`**   | <code><a href="#foldbounds">FoldBounds</a></code>             | Area the hinge covers. Present when the hinge has a physical gap.  | 8.2.0 |
+
+
+#### FoldBounds
+
+A rectangle in CSS pixels, relative to the web view.
+
+| Prop         | Type                |
+| ------------ | ------------------- |
+| **`x`**      | <code>number</code> |
+| **`y`**      | <code>number</code> |
+| **`width`**  | <code>number</code> |
+| **`height`** | <code>number</code> |
+
+
+#### HingeAngleResult
+
+Angle between the two halves of a foldable, in degrees.
+
+`0` is closed and `180` is flat. `angle` is `null` when the device has no hinge sensor.
+
+| Prop        | Type                        | Description                                                    | Since |
+| ----------- | --------------------------- | -------------------------------------------------------------- | ----- |
+| **`angle`** | <code>number \| null</code> | Hinge angle in degrees, or `null` when no sensor is available. | 8.2.0 |
+
+
+#### SizeClass
+
+Window size classes.
+
+`horizontal` and `vertical` follow Apple's compact/regular split.
+On Android and web, `regular` starts at 600 CSS pixels wide and 480 tall.
+`widthClass` and `heightClass` follow Material window size classes.
+
+| Prop              | Type                                                                        | Description                                                                                                                               | Since |
+| ----------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| **`horizontal`**  | <code>'compact' \| 'regular'</code>                                         | Width size class. `compact` on a phone, `regular` on the inner display of a foldable, a tablet, or a window at least 600 CSS pixels wide. | 8.2.0 |
+| **`vertical`**    | <code>'compact' \| 'regular'</code>                                         | Height size class. `regular` starts at 480 CSS pixels.                                                                                    | 8.2.0 |
+| **`widthClass`**  | <code>'compact' \| 'medium' \| 'expanded' \| 'large' \| 'extraLarge'</code> | Material window width class.                                                                                                              | 8.2.0 |
+| **`heightClass`** | <code>'compact' \| 'medium' \| 'expanded'</code>                            | Material window height class.                                                                                                             | 8.2.0 |
+
+
 #### PluginListenerHandle
 
 | Prop         | Type                                      |
@@ -395,5 +596,30 @@ Orientation type that describes the orientation state of the device.
 Orientation lock type that can be used to lock the device orientation.
 
 <code>'any' | 'natural' | 'landscape' | 'portrait' | 'portrait-primary' | 'portrait-secondary' | 'landscape-primary' | 'landscape-secondary'</code>
+
+
+#### FoldStateValue
+
+How open a foldable is.
+
+`closed` is reserved. A device shut onto its cover display reports `flat`.
+
+<code>'flat' | 'half-opened'</code>
+
+
+#### FoldPosture
+
+How a half-open foldable is held.
+
+`tabletop` is a horizontal hinge, like a laptop. `book` is a vertical hinge.
+
+<code>'flat' | 'tabletop' | 'book'</code>
+
+
+#### HingeOrientation
+
+Direction of the hinge relative to the window.
+
+<code>'horizontal' | 'vertical'</code>
 
 </docgen-api>

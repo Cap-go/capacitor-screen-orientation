@@ -126,6 +126,170 @@ export interface StartOrientationTrackingOptions {
 }
 
 /**
+ * How open a foldable is.
+ *
+ * `closed` is reserved. A device shut onto its cover display reports `flat`.
+ *
+ * @since 8.2.0
+ */
+export type FoldStateValue = 'flat' | 'half-opened';
+
+/**
+ * How a half-open foldable is held.
+ *
+ * `tabletop` is a horizontal hinge, like a laptop. `book` is a vertical hinge.
+ *
+ * @since 8.2.0
+ */
+export type FoldPosture = 'flat' | 'tabletop' | 'book';
+
+/**
+ * Direction of the hinge relative to the window.
+ *
+ * @since 8.2.0
+ */
+export type HingeOrientation = 'horizontal' | 'vertical';
+
+/**
+ * A rectangle in CSS pixels, relative to the web view.
+ *
+ * @since 8.2.0
+ */
+export interface FoldBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Current fold of the window.
+ *
+ * Phones that do not fold, iOS, and web resolve to a flat state.
+ *
+ * @since 8.2.0
+ */
+export interface FoldState {
+  /**
+   * Posture of the fold.
+   *
+   * @since 8.2.0
+   */
+  state: FoldStateValue;
+
+  /**
+   * Whether the fold splits the web view into two areas.
+   *
+   * @since 8.2.0
+   */
+  isSeparating: boolean;
+
+  /**
+   * How the device is held.
+   *
+   * @since 8.2.0
+   */
+  posture: FoldPosture;
+
+  /**
+   * Direction of the hinge. Omitted when there is no fold.
+   *
+   * @since 8.2.0
+   */
+  hingeOrientation?: HingeOrientation;
+
+  /**
+   * Position of the fold in CSS pixels. Omitted when there is no fold.
+   *
+   * @since 8.2.0
+   */
+  hingeBounds?: FoldBounds;
+
+  /**
+   * Area the hinge covers. Present when the hinge has a physical gap.
+   *
+   * @since 8.2.0
+   */
+  occludedBounds?: FoldBounds;
+}
+
+/**
+ * Whether this device can fold.
+ *
+ * @since 8.2.0
+ */
+export interface DeviceFoldableResult {
+  /**
+   * Whether the device has a fold.
+   *
+   * @since 8.2.0
+   */
+  foldable: boolean;
+
+  /**
+   * Whether it can stand half-open like a laptop.
+   *
+   * @since 8.2.0
+   */
+  supportsTabletop: boolean;
+}
+
+/**
+ * Angle between the two halves of a foldable, in degrees.
+ *
+ * `0` is closed and `180` is flat. `angle` is `null` when the device has no hinge sensor.
+ *
+ * @since 8.2.0
+ */
+export interface HingeAngleResult {
+  /**
+   * Hinge angle in degrees, or `null` when no sensor is available.
+   *
+   * @since 8.2.0
+   */
+  angle: number | null;
+}
+
+/**
+ * Window size classes.
+ *
+ * `horizontal` and `vertical` follow Apple's compact/regular split.
+ * On Android and web, `regular` starts at 600 CSS pixels wide and 480 tall.
+ * `widthClass` and `heightClass` follow Material window size classes.
+ *
+ * @since 8.2.0
+ */
+export interface SizeClass {
+  /**
+   * Width size class. `compact` on a phone, `regular` on the inner display of a foldable, a tablet, or a window at least 600 CSS pixels wide.
+   *
+   * @since 8.2.0
+   */
+  horizontal: 'compact' | 'regular';
+
+  /**
+   * Height size class. `regular` starts at 480 CSS pixels.
+   *
+   * @since 8.2.0
+   */
+  vertical: 'compact' | 'regular';
+
+  /**
+   * Material window width class.
+   *
+   * @since 8.2.0
+   */
+  widthClass: 'compact' | 'medium' | 'expanded' | 'large' | 'extraLarge';
+
+  /**
+   * Material window height class.
+   *
+   * @since 8.2.0
+   */
+  heightClass: 'compact' | 'medium' | 'expanded';
+}
+
+/**
  * Capacitor Screen Orientation Plugin interface.
  *
  * Provides methods to detect and control screen orientation,
@@ -291,9 +455,109 @@ export interface CapacitorScreenOrientationPlugin {
    * await listener.remove();
    * ```
    */
+  /**
+   * Whether this device folds, and whether it can stand half-open like a laptop.
+   *
+   * Both flags are `false` on web and iOS.
+   *
+   * @since 8.2.0
+   * @returns {Promise<DeviceFoldableResult>} Fold capability of this device.
+   *
+   * @example
+   * ```typescript
+   * const { foldable, supportsTabletop } = await ScreenOrientation.isDeviceFoldable();
+   * ```
+   */
+  isDeviceFoldable(): Promise<DeviceFoldableResult>;
+
+  /**
+   * Read the current fold.
+   *
+   * Resolves to a flat state when the device has no fold.
+   *
+   * @since 8.2.0
+   * @returns {Promise<FoldState>} The current fold state.
+   *
+   * @example
+   * ```typescript
+   * const { posture, hingeOrientation } = await ScreenOrientation.getFoldState();
+   * ```
+   */
+  getFoldState(): Promise<FoldState>;
+
+  /**
+   * Read the hinge angle in degrees.
+   *
+   * `0` is closed and `180` is flat. `angle` is `null` without a hinge sensor.
+   *
+   * @since 8.2.0
+   * @returns {Promise<HingeAngleResult>} The latest hinge angle.
+   *
+   * @example
+   * ```typescript
+   * const { angle } = await ScreenOrientation.getHingeAngle();
+   * ```
+   */
+  getHingeAngle(): Promise<HingeAngleResult>;
+
+  /**
+   * Read the window size classes.
+   *
+   * @since 8.2.0
+   * @returns {Promise<SizeClass>} Apple and Material size classes for the current window.
+   *
+   * @example
+   * ```typescript
+   * const { horizontal, widthClass } = await ScreenOrientation.getSizeClass();
+   * ```
+   */
+  getSizeClass(): Promise<SizeClass>;
+
   addListener(
     eventName: 'screenOrientationChange',
     listenerFunc: (result: ScreenOrientationResult) => void,
+  ): Promise<PluginListenerHandle>;
+
+  /**
+   * Listen for fold changes.
+   *
+   * On a foldable this also fires when the device rotates, because the hinge
+   * bounds rotate with the window.
+   *
+   * @since 8.2.0
+   * @param eventName The event name. Must be 'foldStateChange'.
+   * @param listenerFunc Callback invoked with the new fold state.
+   * @returns {Promise<PluginListenerHandle>} A promise that resolves to a listener handle.
+   */
+  addListener(eventName: 'foldStateChange', listenerFunc: (state: FoldState) => void): Promise<PluginListenerHandle>;
+
+  /**
+   * Listen for hinge angle changes.
+   *
+   * On Android the hinge sensor runs only while at least one listener is registered.
+   * Never fires on web or iOS.
+   *
+   * @since 8.2.0
+   * @param eventName The event name. Must be 'hingeAngleChange'.
+   * @param listenerFunc Callback invoked with the angle in degrees.
+   * @returns {Promise<PluginListenerHandle>} A promise that resolves to a listener handle.
+   */
+  addListener(
+    eventName: 'hingeAngleChange',
+    listenerFunc: (event: HingeAngleResult) => void,
+  ): Promise<PluginListenerHandle>;
+
+  /**
+   * Listen for size class changes, such as unfolding, rotating, or resizing.
+   *
+   * @since 8.2.0
+   * @param eventName The event name. Must be 'sizeClassChange'.
+   * @param listenerFunc Callback invoked with the new size class.
+   * @returns {Promise<PluginListenerHandle>} A promise that resolves to a listener handle.
+   */
+  addListener(
+    eventName: 'sizeClassChange',
+    listenerFunc: (sizeClass: SizeClass) => void,
   ): Promise<PluginListenerHandle>;
 
   /**
