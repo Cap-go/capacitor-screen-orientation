@@ -165,7 +165,8 @@ export interface FoldBounds {
 /**
  * Current fold of the window.
  *
- * Phones that do not fold, iOS, and web resolve to a flat state.
+ * Phones that do not fold, and iOS before 27.1, resolve to a flat state.
+ * iPhone Duo reports `book`, `tabletop`, or `flat`, and which display is in front.
  *
  * @since 8.2.0
  */
@@ -211,6 +212,27 @@ export interface FoldState {
    * @since 8.2.0
    */
   occludedBounds?: FoldBounds;
+
+  /**
+   * Which display is showing the app on iPhone Duo. Omitted on Android, web, and iOS before 27.1.
+   *
+   * @since 8.2.0
+   */
+  activeDisplay?: 'inner' | 'outer';
+
+  /**
+   * Space the system keeps clear around the fold, in CSS pixels. iPhone Duo reports 20 on each side of a vertical fold.
+   *
+   * @since 8.2.0
+   */
+  hingeMargins?: { top: number; right: number; bottom: number; left: number };
+
+  /**
+   * Areas covering the display, such as the iPhone Duo camera. Omitted when there are none.
+   *
+   * @since 8.2.0
+   */
+  cameraBounds?: FoldBounds[];
 }
 
 /**
@@ -248,6 +270,92 @@ export interface HingeAngleResult {
    * @since 8.2.0
    */
   angle: number | null;
+
+  /**
+   * How far open iPhone Duo is, as the system sees it. `null` on Android and web.
+   *
+   * @since 8.2.0
+   */
+  status?: 'closed' | 'partiallyOpen' | 'fullyOpen' | null;
+}
+
+/**
+ * A region the system reserves on iPhone Duo.
+ *
+ * `division` is the fold. `occlusion` is something covering the display, such as the camera.
+ *
+ * @since 8.2.0
+ */
+export interface ReservedRegion {
+  /**
+   * What the region is.
+   *
+   * @since 8.2.0
+   */
+  kind: 'division' | 'occlusion';
+
+  /**
+   * Whether the region applies right now. An inactive division is a flat fold.
+   *
+   * @since 8.2.0
+   */
+  isActive: boolean;
+
+  /**
+   * Left edge, in CSS pixels.
+   *
+   * @since 8.2.0
+   */
+  x: number;
+
+  /**
+   * Top edge, in CSS pixels.
+   *
+   * @since 8.2.0
+   */
+  y: number;
+
+  /**
+   * Width in CSS pixels.
+   *
+   * @since 8.2.0
+   */
+  width: number;
+
+  /**
+   * Height in CSS pixels.
+   *
+   * @since 8.2.0
+   */
+  height: number;
+
+  /**
+   * Space to keep clear around the region, in CSS pixels.
+   *
+   * @since 8.2.0
+   */
+  margins: { top: number; right: number; bottom: number; left: number };
+}
+
+/**
+ * Where iPhone Duo places native bars.
+ *
+ * @since 8.2.0
+ */
+export interface BarPlacement {
+  /**
+   * The edge the system moves tab bars and toolbars to. `null` when they stay horizontal.
+   *
+   * @since 8.2.0
+   */
+  verticalBarEdge: 'leading' | 'trailing' | null;
+
+  /**
+   * How much room the vertical bar takes, in points. `0` when bars stay horizontal.
+   *
+   * @since 8.2.0
+   */
+  inset: number;
 }
 
 /**
@@ -458,7 +566,7 @@ export interface CapacitorScreenOrientationPlugin {
   /**
    * Whether this device folds, and whether it can stand half-open like a laptop.
    *
-   * Both flags are `false` on web and iOS.
+   * Both flags are `false` on web, on Android phones that do not fold, and on iOS except iPhone Duo (iOS 27.1 or later).
    *
    * @since 8.2.0
    * @returns {Promise<DeviceFoldableResult>} Fold capability of this device.
@@ -501,6 +609,39 @@ export interface CapacitorScreenOrientationPlugin {
   getHingeAngle(): Promise<HingeAngleResult>;
 
   /**
+   * Read the fold and anything covering the screen.
+   *
+   * iPhone Duo reports the fold, the vertical status bar area, and the under-display camera.
+   * Resolves to an empty list on Android, web, and iOS before 27.1.
+   *
+   * @since 8.2.0
+   * @returns {Promise<{ regions: ReservedRegion[] }>} The reserved regions.
+   */
+  getReservedRegions(): Promise<{ regions: ReservedRegion[] }>;
+
+  /**
+   * Read where iPhone Duo puts native tab bars and toolbars.
+   *
+   * `verticalBarEdge` is `null` when bars stay horizontal, and always on Android and web.
+   *
+   * @since 8.2.0
+   * @returns {Promise<BarPlacement>} The current bar placement.
+   */
+  getBarPlacement(): Promise<BarPlacement>;
+
+  /**
+   * Choose whether iPhone Duo may move this app's bars to the side.
+   *
+   * Resolves to `{ applied: false }` unless the app's bridge view controller opts in.
+   * Android and web always resolve to `{ applied: false }`.
+   *
+   * @since 8.2.0
+   * @param options `automatic` lets the system move bars. `disabled` keeps them horizontal.
+   * @returns {Promise<{ applied: boolean }>} Whether the app applied the choice.
+   */
+  setVerticalBarBehavior(options: { behavior: 'automatic' | 'disabled' }): Promise<{ applied: boolean }>;
+
+  /**
    * Read the window size classes.
    *
    * @since 8.2.0
@@ -535,7 +676,7 @@ export interface CapacitorScreenOrientationPlugin {
    * Listen for hinge angle changes.
    *
    * On Android the hinge sensor runs only while at least one listener is registered.
-   * Never fires on web or iOS.
+   * On iOS this fires on iPhone Duo (iOS 27.1 or later). Never fires on web.
    *
    * @since 8.2.0
    * @param eventName The event name. Must be 'hingeAngleChange'.

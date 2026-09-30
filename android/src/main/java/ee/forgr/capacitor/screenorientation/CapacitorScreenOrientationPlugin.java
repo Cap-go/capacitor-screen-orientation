@@ -186,6 +186,28 @@ public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEv
     }
 
     @PluginMethod
+    public void getReservedRegions(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("regions", new org.json.JSONArray());
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void getBarPlacement(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("verticalBarEdge", JSONObject.NULL);
+        result.put("inset", 0);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void setVerticalBarBehavior(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("applied", false);
+        call.resolve(result);
+    }
+
+    @PluginMethod
     public void orientation(final PluginCall call) {
         try {
             final JSObject ret = new JSObject();

@@ -47,7 +47,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-        return UIInterfaceOrientationMask(rawValue: (self.window!.rootViewController as! CAPBridgeViewController).supportedInterfaceOrientations.rawValue)
+        let root = window?.rootViewController ?? self.window?.rootViewController
+        if let bridge = root as? CAPBridgeViewController {
+            return bridge.supportedInterfaceOrientations
+        }
+        return .all
     }
 
 

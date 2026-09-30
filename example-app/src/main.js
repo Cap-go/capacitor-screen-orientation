@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 /* eslint-disable no-undef */
+import { SplashScreen } from '@capacitor/splash-screen';
 import { ScreenOrientation } from '@capgo/capacitor-screen-orientation';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import './style.css';
@@ -327,6 +328,41 @@ runButton.addEventListener('click', async () => {
 });
 
 populateActions();
+
+const duoPosture = document.getElementById('duo-posture');
+const duoDetail = document.getElementById('duo-detail');
+
+function paintDuo(fold, hinge, bar) {
+  const posture = fold?.posture ?? fold?.state ?? 'unknown';
+  const display = fold?.activeDisplay ? ` · ${fold.activeDisplay} display` : '';
+  duoPosture.textContent = `${posture}${display}`;
+  const angle = hinge?.angle == null ? 'no hinge' : `${Math.round(hinge.angle)}° ${hinge.status ?? ''}`.trim();
+  const edge = bar?.verticalBarEdge ? `bar ${bar.verticalBarEdge} ${Math.round(bar.inset)}pt` : 'bar stays horizontal';
+  duoDetail.textContent = `${angle} · ${edge}`;
+}
+
+async function refreshDuo() {
+  try {
+    const [fold, hinge, bar] = await Promise.all([
+      plugin.getFoldState(),
+      plugin.getHingeAngle(),
+      plugin.getBarPlacement(),
+    ]);
+    paintDuo(fold, hinge, bar);
+  } catch (error) {
+    duoPosture.textContent = 'Fold unavailable';
+    duoDetail.textContent = error?.message ?? String(error);
+  }
+}
+
+SplashScreen.hide().catch(() => {});
+refreshDuo();
+plugin.addListener('foldStateChange', () => {
+  refreshDuo();
+});
+plugin.addListener('hingeAngleChange', () => {
+  refreshDuo();
+});
 
 if (Capacitor.isNativePlatform()) {
   CapacitorUpdater.notifyAppReady().catch((error) => {
