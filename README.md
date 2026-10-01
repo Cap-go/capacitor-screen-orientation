@@ -50,14 +50,14 @@ Foldables give you more than a wider canvas: the hinge, cover screen, and postur
 import { ScreenOrientation } from '@capgo/capacitor-screen-orientation';
 
 const { foldable } = await ScreenOrientation.isDeviceFoldable();
-if (!foldable) return;
+if (foldable) {
+  const fold = await ScreenOrientation.getFoldState();
+  console.log(fold.posture, fold.hingeBounds);
 
-const fold = await ScreenOrientation.getFoldState();
-console.log(fold.posture, fold.hingeBounds);
-
-await ScreenOrientation.addListener('foldStateChange', (state) => {
-  document.documentElement.dataset.posture = state.posture;
-});
+  await ScreenOrientation.addListener('foldStateChange', (state) => {
+    document.documentElement.dataset.posture = state.posture;
+  });
+}
 ```
 
 **iPhone Duo (iOS 27.1+)**

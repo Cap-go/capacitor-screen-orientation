@@ -29,6 +29,7 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
         this.notifyListeners('screenOrientationChange', {
           type: this.mapOrientationType(window.screen.orientation.type),
         });
+        this.notifyFoldIfChanged();
       });
     }
     window.addEventListener('resize', () => {
