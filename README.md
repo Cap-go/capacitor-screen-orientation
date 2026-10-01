@@ -20,28 +20,65 @@ Screen orientation plugin with support for detecting true physical device orient
 - 🔒 **Detect if orientation lock is enabled** by comparing physical vs UI orientation
 - 🔄 Real-time orientation change detection
 - 🎯 Lock orientation to specific modes
-- 📖 **iPhone Duo and Android foldables**: flat, book, or tabletop, hinge angle, which display is showing, and where iPhone Duo puts the tab bar
+- 📖 **Foldable devices** (Galaxy Z Fold/Flip, Pixel Fold, Surface Duo, iPhone Duo): posture, hinge, size classes, and live fold updates
 - 🌐 Web platform support
 
 **Important Note:** This plugin can detect the physical orientation of the device using motion sensors, but it **cannot bypass the UI orientation lock**. The screen will still respect the user's orientation lock setting. This is useful for knowing how the device is physically held vs. how the UI is displayed.
 
-## iPhone Duo
+## Foldable devices
 
-iPhone Duo (iOS 27.1 or later) is a foldable iPhone. The same fold calls used on Android report it:
+Foldables give you more than a wider canvas: the hinge, cover screen, and posture change how people hold the phone. This plugin reports that state in JavaScript so you can adapt layouts, controls, and media without guessing from window size alone. It targets Galaxy Z Fold and Flip, Pixel Fold, Surface Duo, and iPhone Duo (iOS 27.1+), alongside the orientation APIs already in this package.
 
-| Pose | `posture` | Hinge |
+**What you get**
+
+- **Device and posture**: `isDeviceFoldable()`, `getFoldState()` (`flat` / `half-opened`, `posture` `flat` / `tabletop` / `book`, hinge bounds, separating fold, occluded hinge area when applicable)
+- **Hinge angle**: `getHingeAngle()` and `hingeAngleChange` (native sensor on Android; iPhone Duo on iOS 27.1+; `null` on web)
+- **Layout signals**: `getSizeClass()` and `sizeClassChange` (Apple compact/regular plus Material width/height classes)
+- **iPhone Duo extras**: `activeDisplay` (`inner` / `outer`), `getReservedRegions()`, `getBarPlacement()`, `setVerticalBarBehavior()`
+- **Live updates**: `foldStateChange` when posture or hinge geometry changes the reported fold state (rotation alone may not fire if `devicePosture` is available but usable viewport segments are not)
+
+**Good fits**
+
+- Two-pane layouts that follow the hinge instead of a fixed breakpoint
+- Toolbar, gamepad, or reader chrome that moves when the user folds to tabletop or book
+- Cover-screen vs inner-screen flows on foldables and iPhone Duo
+- Size-class driven UI that reacts when the user opens the device fully
+
+**Quick start**
+
+```typescript
+import { ScreenOrientation } from '@capgo/capacitor-screen-orientation';
+
+const { foldable } = await ScreenOrientation.isDeviceFoldable();
+if (!foldable) return;
+
+const fold = await ScreenOrientation.getFoldState();
+console.log(fold.posture, fold.hingeBounds);
+
+await ScreenOrientation.addListener('foldStateChange', (state) => {
+  document.documentElement.dataset.posture = state.posture;
+});
+```
+
+**iPhone Duo (iOS 27.1+)**
+
+| Pose | `posture` | Hinge (typical) |
 | --- | --- | --- |
-| Open flat, or closed on the outer display | `flat` | `180` open, `0` closed |
-| Held half-open like a book | `book` | vertical hinge, about `20`–`160` |
-| Propped half-open like a laptop | `tabletop` | horizontal hinge |
+| Open flat, or closed on the cover display | `flat` | `180` open, `0` closed |
+| Half-open like a book | `book` | vertical, about `20` to `160` |
+| Half-open like a laptop | `tabletop` | horizontal |
 
-Closed on the cover screen, the iPhone Duo simulator reports the outer display and a hinge at 0°:
+<p align="center">
+  <img src="screenshots/ios-iphone-duo.webp" alt="iPhone Duo simulator on the cover display, reporting flat posture and outer display" width="280" />
+</p>
 
+<<<<<<< HEAD
 <img src="screenshots/ios-iphone-duo.webp" width="300" alt="iPhone Duo simulator closed on the cover screen, reporting flat, outer display, hinge 0 degrees">
+=======
+Non-folding iPhones and iOS before 27.1 stay `flat` with no hinge. Android uses Jetpack WindowManager; web uses the Device Posture API and viewport segments when the browser exposes them (hinge angle stays `null` on web).
+>>>>>>> c842145 (docs: foldable README, remove THIRD_PARTY_LICENSES, shrink screenshot)
 
-`activeDisplay` is `inner` on the large folding screen and `outer` on the cover screen. `getReservedRegions()` returns the fold (`division`) and anything covering the glass, such as the camera (`occlusion`). `getBarPlacement()` says whether iOS moved the tab bar to the side, and how wide that bar is.
-
-A regular iPhone, and iOS before 27.1, stays `flat` with no hinge angle. Android foldables report posture and hinge angle the same way. On web, hinge angle stays `null`; use `foldStateChange` for updates. When the browser exposes two viewport segments, hinge bounds and posture match native shape. With only the Device Posture API, web may report half-open posture without hinge bounds until segments are available.
+**Fold API** (full types below): `isDeviceFoldable()`, `getFoldState()`, `getHingeAngle()`, `getReservedRegions()`, `getBarPlacement()`, `setVerticalBarBehavior()`, `getSizeClass()`, listeners `foldStateChange`, `hingeAngleChange`, `sizeClassChange`.
 
 ## Documentation
 
@@ -57,10 +94,6 @@ The most complete doc is available here: https://capgo.app/docs/plugins/screen-o
 | v5.\*.\*       | v5.\*.\*                | ❌          |
 
 > **Note:** The major version of this plugin follows the major version of Capacitor. Use the version that matches your Capacitor installation (e.g., plugin v8 for Capacitor 8). Only the latest major version is actively maintained.
-
-## Credits
-
-Foldable web viewport segment logic is adapted from [capacitor-foldable](https://github.com/erkamyaman/capacitor-foldable) (MIT) by Erkam Yaman. See [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES) for the full MIT notice.
 
 ## Install
 
@@ -748,3 +781,5 @@ Direction of the hinge relative to the window.
 <code>'horizontal' | 'vertical'</code>
 
 </docgen-api>
+
+Foldable support adapted from [erkamyaman/capacitor-foldable](https://github.com/erkamyaman/capacitor-foldable) (MIT, Copyright (c) Erkam Yaman).
