@@ -1,10 +1,3 @@
-/*
- * Portions adapted from capacitor-foldable (MIT)
- * Copyright (c) Erkam Yaman
- * https://github.com/erkamyaman/capacitor-foldable
- * See THIRD_PARTY_LICENSES.
- */
-
 import type { DeviceFoldableResult, FoldBounds, FoldState, HingeOrientation } from './definitions';
 import { splitViewport, type SegmentRect } from './segments';
 

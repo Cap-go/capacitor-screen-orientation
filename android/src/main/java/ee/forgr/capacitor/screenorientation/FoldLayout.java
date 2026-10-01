@@ -19,8 +19,6 @@ import java.util.concurrent.Executor;
 /**
  * Reads Jetpack WindowManager fold state for the current activity.
  * The hinge sensor itself stays in the plugin so it can run only while a listener is registered.
- *
- * Fold mapping follows the same posture model as capacitor-foldable (MIT). See THIRD_PARTY_LICENSES.
  */
 final class FoldLayout implements Consumer<WindowLayoutInfo> {
 

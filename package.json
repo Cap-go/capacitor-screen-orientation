@@ -13,8 +13,7 @@
     "ios/Sources",
     "ios/Tests",
     "Package.swift",
-    "CapgoCapacitorScreenOrientation.podspec",
-    "THIRD_PARTY_LICENSES"
+    "CapgoCapacitorScreenOrientation.podspec"
   ],
   "author": "Cap-go <contact@capgo.app>",
   "license": "MPL-2.0",
