@@ -6,7 +6,7 @@
  */
 
 import type { DeviceFoldableResult, FoldBounds, FoldState, HingeOrientation } from './definitions';
-import type { SegmentRect } from './segments';
+import { splitViewport, type SegmentRect } from './segments';
 
 type DevicePostureType = 'continuous' | 'folded';
 
@@ -15,7 +15,7 @@ interface DevicePosture extends EventTarget {
 }
 
 interface ViewportSegments {
-  readonly segments: readonly { x: number; y: number; width: number; height: number }[];
+  readonly segments: readonly { x: number; y: number; width: number; height: number }[] | null;
 }
 
 declare global {
@@ -43,8 +43,11 @@ export function webDeviceFoldable(): DeviceFoldableResult {
     return { foldable: false, supportsTabletop: false };
   }
   const fold = readWebFoldState(window.innerWidth, window.innerHeight);
-  const supportsTabletop = fold.posture === 'tabletop' || fold.hingeOrientation === 'horizontal';
-  return { foldable: true, supportsTabletop };
+  const foldable =
+    fold.state === 'half-opened' || (fold.isSeparating && fold.hingeBounds != null);
+  const supportsTabletop =
+    foldable && (fold.posture === 'tabletop' || fold.hingeOrientation === 'horizontal');
+  return { foldable, supportsTabletop };
 }
 
 export function readWebFoldState(width: number, height: number): FoldState {
@@ -71,12 +74,12 @@ function foldFromViewportSegments(width: number, height: number): FoldState | nu
     return null;
   }
 
-  const segments = [...viewport.segments];
-  if (segments.length < 2) {
+  const rawSegments = viewport.segments;
+  if (!rawSegments || rawSegments.length !== 2) {
     return null;
   }
 
-  const rects: SegmentRect[] = segments.map((rect) => ({
+  const rects: SegmentRect[] = rawSegments.map((rect) => ({
     x: rect.x,
     y: rect.y,
     width: rect.width,
@@ -90,31 +93,46 @@ function foldFromViewportSegments(width: number, height: number): FoldState | nu
   if (vertical) {
     const sorted = [...rects].sort((a, b) => a.x - b.x);
     const left = sorted[0];
-    const right = sorted[sorted.length - 1];
+    const right = sorted[1];
     const hingeX = left.x + left.width;
     const hingeW = right.x - hingeX;
     if (hingeW < 0) {
       return null;
     }
     const hingeBounds: FoldBounds = { x: hingeX, y: 0, width: hingeW, height };
-    return foldWithHinge(state, folded, 'vertical', hingeBounds, true);
+    return finalizeSegmentFold(state, folded, 'vertical', hingeBounds, width, height);
   }
 
   const horizontal = rects.every((r) => r.x <= 1 && r.width >= width - 1);
   if (horizontal) {
     const sorted = [...rects].sort((a, b) => a.y - b.y);
     const top = sorted[0];
-    const bottom = sorted[sorted.length - 1];
+    const bottom = sorted[1];
     const hingeY = top.y + top.height;
     const hingeH = bottom.y - hingeY;
     if (hingeH < 0) {
       return null;
     }
     const hingeBounds: FoldBounds = { x: 0, y: hingeY, width, height: hingeH };
-    return foldWithHinge(state, folded, 'horizontal', hingeBounds, true);
+    return finalizeSegmentFold(state, folded, 'horizontal', hingeBounds, width, height);
   }
 
   return null;
+}
+
+function finalizeSegmentFold(
+  state: FoldState['state'],
+  folded: boolean,
+  hingeOrientation: HingeOrientation,
+  hingeBounds: FoldBounds,
+  width: number,
+  height: number,
+): FoldState | null {
+  const fold = foldWithHinge(state, folded, hingeOrientation, hingeBounds, true);
+  if (splitViewport(fold, width, height).length !== 2) {
+    return null;
+  }
+  return fold;
 }
 
 function foldWithHinge(
@@ -125,13 +143,18 @@ function foldWithHinge(
   isSeparating: boolean,
 ): FoldState {
   const posture = !folded ? 'flat' : hingeOrientation === 'horizontal' ? 'tabletop' : 'book';
-  return {
+  const fold: FoldState = {
     state,
     isSeparating,
     posture,
     hingeOrientation,
     hingeBounds,
   };
+  const gap = hingeOrientation === 'vertical' ? hingeBounds.width : hingeBounds.height;
+  if (gap > 0) {
+    fold.occludedBounds = { ...hingeBounds };
+  }
+  return fold;
 }
 
 export function foldStateKey(state: FoldState): string {

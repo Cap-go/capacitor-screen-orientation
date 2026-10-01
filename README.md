@@ -41,7 +41,7 @@ Closed on the cover screen, the iPhone Duo simulator reports the outer display a
 
 `activeDisplay` is `inner` on the large folding screen and `outer` on the cover screen. `getReservedRegions()` returns the fold (`division`) and anything covering the glass, such as the camera (`occlusion`). `getBarPlacement()` says whether iOS moved the tab bar to the side, and how wide that bar is.
 
-A regular iPhone, and iOS before 27.1, stays `flat` with no hinge angle. Android foldables report posture and hinge angle the same way. On web, Chrome and other browsers that expose the Device Posture API and Viewport Segments API report fold state the same way when a foldable display is emulated or available.
+A regular iPhone, and iOS before 27.1, stays `flat` with no hinge angle. Android foldables report posture and hinge angle the same way. On web, hinge angle stays `null`; use `foldStateChange` for updates. When the browser exposes two viewport segments, hinge bounds and posture match native shape. With only the Device Posture API, web may report half-open posture without hinge bounds until segments are available.
 
 ## Documentation
 
@@ -322,9 +322,9 @@ isDeviceFoldable() => Promise<DeviceFoldableResult>
 
 Whether this device folds, and whether it can stand half-open like a laptop.
 
-On web, both flags are `false` when the browser does not expose the Device Posture API or
-Viewport Segments API. When those APIs exist, `foldable` is `true` and `supportsTabletop`
-reflects the current hinge orientation when known.
+On web, both flags are `false` when the browser lacks fold APIs or the current reading shows
+no fold (`devicePosture.type` is `continuous` with a single viewport segment). `foldable`
+becomes `true` when posture is `folded` or the viewport splits into two segments.
 
 On Android, both flags are `false` on phones that do not fold. On iOS, both are `false`
 except on iPhone Duo (iOS 27.1 or later).
