@@ -566,7 +566,12 @@ export interface CapacitorScreenOrientationPlugin {
   /**
    * Whether this device folds, and whether it can stand half-open like a laptop.
    *
-   * Both flags are `false` on web, on Android phones that do not fold, and on iOS except iPhone Duo (iOS 27.1 or later).
+   * On web, both flags are `false` when the browser does not expose the Device Posture API or
+   * Viewport Segments API. When those APIs exist, `foldable` is `true` and `supportsTabletop`
+   * reflects the current hinge orientation when known.
+   *
+   * On Android, both flags are `false` on phones that do not fold. On iOS, both are `false`
+   * except on iPhone Duo (iOS 27.1 or later).
    *
    * @since 8.2.0
    * @returns {Promise<DeviceFoldableResult>} Fold capability of this device.
@@ -581,7 +586,8 @@ export interface CapacitorScreenOrientationPlugin {
   /**
    * Read the current fold.
    *
-   * Resolves to a flat state when the device has no fold.
+   * Resolves to a flat state when the device has no fold. On web, uses
+   * `navigator.devicePosture` and `window.viewport.segments` when the browser provides them.
    *
    * @since 8.2.0
    * @returns {Promise<FoldState>} The current fold state.
@@ -676,7 +682,8 @@ export interface CapacitorScreenOrientationPlugin {
    * Listen for hinge angle changes.
    *
    * On Android the hinge sensor runs only while at least one listener is registered.
-   * On iOS this fires on iPhone Duo (iOS 27.1 or later). Never fires on web.
+   * On iOS this fires on iPhone Duo (iOS 27.1 or later). On web, hinge angle stays `null`;
+   * use `foldStateChange` for posture updates from the Device Posture API.
    *
    * @since 8.2.0
    * @param eventName The event name. Must be 'hingeAngleChange'.
