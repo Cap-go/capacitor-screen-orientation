@@ -43,10 +43,8 @@ export function webDeviceFoldable(): DeviceFoldableResult {
     return { foldable: false, supportsTabletop: false };
   }
   const fold = readWebFoldState(window.innerWidth, window.innerHeight);
-  const foldable =
-    fold.state === 'half-opened' || (fold.isSeparating && fold.hingeBounds != null);
-  const supportsTabletop =
-    foldable && (fold.posture === 'tabletop' || fold.hingeOrientation === 'horizontal');
+  const foldable = fold.state === 'half-opened' || (fold.isSeparating && fold.hingeBounds != null);
+  const supportsTabletop = foldable && (fold.posture === 'tabletop' || fold.hingeOrientation === 'horizontal');
   return { foldable, supportsTabletop };
 }
 
