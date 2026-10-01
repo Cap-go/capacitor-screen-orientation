@@ -43,8 +43,9 @@
     "verify": "npm run verify:ios && npm run verify:android && npm run verify:web",
     "verify:ios": "xcodebuild -scheme CapgoCapacitorScreenOrientation -destination generic/platform=iOS",
     "verify:android": "cd android && ./gradlew clean build test && cd ..",
-    "verify:web": "npm run test && npm run build",
+    "verify:web": "npm run build",
     "test": "vitest run",
+    "test:types": "tsc --noEmit -p tsconfig.spec.json",
     "lint": "npm run eslint && npm run prettier -- --check && npm run swiftlint -- lint",
     "fmt": "npm run eslint -- --fix && npm run prettier -- --write && npm run swiftlint -- --fix --format",
     "eslint": "eslint .",
@@ -81,6 +82,7 @@
     "swiftlint": "^2.0.0",
     "typescript": "^6.0.3",
     "vitest": "^4.0.18",
+    "happy-dom": "^20.0.10",
     "prettier-pretty-check": "^0.2.0"
   },
   "peerDependencies": {

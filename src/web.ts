@@ -103,13 +103,6 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
   }
 
   async getHingeAngle(): Promise<HingeAngleResult> {
-    const fold = await this.getFoldState();
-    if (fold.state === 'half-opened') {
-      return { angle: null, status: 'partiallyOpen' };
-    }
-    if (fold.state === 'flat' && fold.isSeparating) {
-      return { angle: null, status: 'fullyOpen' };
-    }
     return { angle: null, status: null };
   }
 

@@ -566,9 +566,9 @@ export interface CapacitorScreenOrientationPlugin {
   /**
    * Whether this device folds, and whether it can stand half-open like a laptop.
    *
-   * On web, both flags are `false` when the browser does not expose the Device Posture API or
-   * Viewport Segments API. When those APIs exist, `foldable` is `true` and `supportsTabletop`
-   * reflects the current hinge orientation when known.
+   * On web, both flags are `false` when the browser lacks fold APIs or the current reading shows
+   * no fold (`devicePosture.type` is `continuous` with a single viewport segment). `foldable`
+   * becomes `true` when posture is `folded` or the viewport splits into two segments.
    *
    * On Android, both flags are `false` on phones that do not fold. On iOS, both are `false`
    * except on iPhone Duo (iOS 27.1 or later).
