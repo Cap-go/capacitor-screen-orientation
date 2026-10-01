@@ -41,7 +41,7 @@ Closed on the cover screen, the iPhone Duo simulator reports the outer display a
 
 `activeDisplay` is `inner` on the large folding screen and `outer` on the cover screen. `getReservedRegions()` returns the fold (`division`) and anything covering the glass, such as the camera (`occlusion`). `getBarPlacement()` says whether iOS moved the tab bar to the side, and how wide that bar is.
 
-A regular iPhone, and iOS before 27.1, stays `flat` with no hinge angle. Android foldables report posture and hinge angle the same way. Rear display and dual-screen modes stay on Android.
+A regular iPhone, and iOS before 27.1, stays `flat` with no hinge angle. Android foldables report posture and hinge angle the same way. On web, Chrome and other browsers that expose the Device Posture API and Viewport Segments API report fold state the same way when a foldable display is emulated or available.
 
 ## Documentation
 
@@ -57,6 +57,10 @@ The most complete doc is available here: https://capgo.app/docs/plugins/screen-o
 | v5.\*.\*       | v5.\*.\*                | ❌          |
 
 > **Note:** The major version of this plugin follows the major version of Capacitor. Use the version that matches your Capacitor installation (e.g., plugin v8 for Capacitor 8). Only the latest major version is actively maintained.
+
+## Credits
+
+Foldable web viewport segment logic is adapted from [capacitor-foldable](https://github.com/erkamyaman/capacitor-foldable) (MIT) by Erkam Yaman. See [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES) for the full MIT notice.
 
 ## Install
 
@@ -318,7 +322,12 @@ isDeviceFoldable() => Promise<DeviceFoldableResult>
 
 Whether this device folds, and whether it can stand half-open like a laptop.
 
-Both flags are `false` on web, on Android phones that do not fold, and on iOS except iPhone Duo (iOS 27.1 or later).
+On web, both flags are `false` when the browser does not expose the Device Posture API or
+Viewport Segments API. When those APIs exist, `foldable` is `true` and `supportsTabletop`
+reflects the current hinge orientation when known.
+
+On Android, both flags are `false` on phones that do not fold. On iOS, both are `false`
+except on iPhone Duo (iOS 27.1 or later).
 
 **Returns:** <code>Promise&lt;<a href="#devicefoldableresult">DeviceFoldableResult</a>&gt;</code>
 
@@ -335,7 +344,8 @@ getFoldState() => Promise<FoldState>
 
 Read the current fold.
 
-Resolves to a flat state when the device has no fold.
+Resolves to a flat state when the device has no fold. On web, uses
+`navigator.devicePosture` and `window.viewport.segments` when the browser provides them.
 
 **Returns:** <code>Promise&lt;<a href="#foldstate">FoldState</a>&gt;</code>
 
@@ -481,7 +491,8 @@ addListener(eventName: 'hingeAngleChange', listenerFunc: (event: HingeAngleResul
 Listen for hinge angle changes.
 
 On Android the hinge sensor runs only while at least one listener is registered.
-On iOS this fires on iPhone Duo (iOS 27.1 or later). Never fires on web.
+On iOS this fires on iPhone Duo (iOS 27.1 or later). On web, hinge angle stays `null`;
+use `foldStateChange` for posture updates from the Device Posture API.
 
 | Param              | Type                                                                              | Description                                 |
 | ------------------ | --------------------------------------------------------------------------------- | ------------------------------------------- |
