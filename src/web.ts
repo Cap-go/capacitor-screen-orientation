@@ -13,31 +13,14 @@ import type {
   SizeClass,
   StartOrientationTrackingOptions,
 } from './definitions';
+import { sizeClassOf } from './size-class';
+import { foldStateKey, readWebFoldState, webDeviceFoldable } from './web-fold';
 
-const FLAT_FOLD: FoldState = { state: 'flat', isSeparating: false, posture: 'flat' };
-
-export function sizeClassOf(width: number, height: number): SizeClass {
-  const widthClass =
-    width >= 1600
-      ? 'extraLarge'
-      : width >= 1200
-        ? 'large'
-        : width >= 840
-          ? 'expanded'
-          : width >= 600
-            ? 'medium'
-            : 'compact';
-  const heightClass = height >= 900 ? 'expanded' : height >= 480 ? 'medium' : 'compact';
-  return {
-    horizontal: width >= 600 ? 'regular' : 'compact',
-    vertical: height >= 480 ? 'regular' : 'compact',
-    widthClass,
-    heightClass,
-  };
-}
+export { sizeClassOf } from './size-class';
 
 export class CapacitorScreenOrientationWeb extends WebPlugin implements CapacitorScreenOrientationPlugin {
   private readonly pluginVersion = '1.0.0';
+  private lastFoldKey: string | null = null;
 
   constructor() {
     super();
@@ -46,15 +29,18 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
         this.notifyListeners('screenOrientationChange', {
           type: this.mapOrientationType(window.screen.orientation.type),
         });
+        this.notifyFoldIfChanged();
       });
     }
     window.addEventListener('resize', () => {
-      const next = this.readSizeClass();
-      const previous = JSON.stringify(this.lastSizeClass);
-      if (previous === JSON.stringify(next)) return;
-      this.lastSizeClass = next;
-      this.notifyListeners('sizeClassChange', next);
+      this.notifySizeClassIfChanged();
+      this.notifyFoldIfChanged();
     });
+    navigator.devicePosture?.addEventListener('change', () => {
+      this.notifyFoldIfChanged();
+    });
+    this.lastSizeClass = this.readSizeClass();
+    this.lastFoldKey = foldStateKey(readWebFoldState(window.innerWidth, window.innerHeight));
   }
 
   private lastSizeClass: SizeClass | null = null;
@@ -69,13 +55,10 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
   }
 
   async lock(options: OrientationLockOptions): Promise<void> {
-    const screenOrientation = window.screen?.orientation as any;
+    const screenOrientation = window.screen?.orientation as { lock?: (orientation: string) => Promise<void> };
     if (!screenOrientation?.lock) {
       throw this.unavailable('Screen Orientation lock not available');
     }
-
-    // bypassOrientationLock is only supported on iOS native platform
-    // Silently ignore it on web
 
     try {
       await screenOrientation.lock(options.orientation);
@@ -85,7 +68,7 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
   }
 
   async unlock(): Promise<void> {
-    const screenOrientation = window.screen?.orientation as any;
+    const screenOrientation = window.screen?.orientation as { unlock?: () => void };
     if (!screenOrientation?.unlock) {
       throw this.unavailable('Screen Orientation unlock not available');
     }
@@ -93,14 +76,11 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
   }
 
   async startOrientationTracking(_options?: StartOrientationTrackingOptions): Promise<void> {
-    // Motion-based orientation tracking is only supported on iOS
-    // Silently ignore on web
     console.warn('Motion-based orientation tracking is not available on web platform', _options);
   }
 
   async stopOrientationTracking(): Promise<void> {
-    // Motion-based orientation tracking is only supported on iOS
-    // Silently ignore on web
+    // No-op on web
   }
 
   async isOrientationLocked(): Promise<{
@@ -116,11 +96,11 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
   }
 
   async isDeviceFoldable(): Promise<DeviceFoldableResult> {
-    return { foldable: false, supportsTabletop: false };
+    return webDeviceFoldable();
   }
 
   async getFoldState(): Promise<FoldState> {
-    return FLAT_FOLD;
+    return readWebFoldState(window.innerWidth, window.innerHeight);
   }
 
   async getHingeAngle(): Promise<HingeAngleResult> {
@@ -151,6 +131,24 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
     return sizeClassOf(window.innerWidth, window.innerHeight);
   }
 
+  private notifySizeClassIfChanged(): void {
+    const next = this.readSizeClass();
+    const previous = JSON.stringify(this.lastSizeClass);
+    if (previous === JSON.stringify(next)) return;
+    this.lastSizeClass = next;
+    this.notifyListeners('sizeClassChange', next);
+  }
+
+  private notifyFoldIfChanged(): void {
+    const next = readWebFoldState(window.innerWidth, window.innerHeight);
+    const key = foldStateKey(next);
+    if (key === this.lastFoldKey) {
+      return;
+    }
+    this.lastFoldKey = key;
+    this.notifyListeners('foldStateChange', next);
+  }
+
   private mapOrientationType(type: string): OrientationType {
     if (type.includes('portrait-primary') || type === 'portrait-primary') {
       return 'portrait-primary';
@@ -164,6 +162,6 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
     if (type.includes('landscape-secondary') || type === 'landscape-secondary') {
       return 'landscape-secondary';
     }
-    return 'portrait-primary'; // default fallback
+    return 'portrait-primary';
   }
 }
