@@ -325,6 +325,8 @@ Whether this device folds, and whether it can stand half-open like a laptop.
 On web, both flags are `false` when the browser lacks fold APIs or the current reading shows
 no fold (`devicePosture.type` is `continuous` with a single viewport segment). `foldable`
 becomes `true` when posture is `folded` or the viewport splits into two segments.
+On web, `supportsTabletop` reflects the current reading (for example, `false` in a book
+pose) rather than permanent device capability.
 
 On Android, both flags are `false` on phones that do not fold. On iOS, both are `false`
 except on iPhone Duo (iOS 27.1 or later).
