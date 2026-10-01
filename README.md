@@ -35,7 +35,7 @@ Foldables give you more than a wider canvas: the hinge, cover screen, and postur
 - **Hinge angle**: `getHingeAngle()` and `hingeAngleChange` (native sensor on Android; iPhone Duo on iOS 27.1+; `null` on web)
 - **Layout signals**: `getSizeClass()` and `sizeClassChange` (Apple compact/regular plus Material width/height classes)
 - **iPhone Duo extras**: `activeDisplay` (`inner` / `outer`), `getReservedRegions()`, `getBarPlacement()`, `setVerticalBarBehavior()`
-- **Live updates**: `foldStateChange` when posture or hinge geometry changes (including rotation)
+- **Live updates**: `foldStateChange` when posture or hinge geometry changes the reported fold state (rotation alone may not fire if `devicePosture` is available but usable viewport segments are not)
 
 **Good fits**
 
@@ -50,14 +50,14 @@ Foldables give you more than a wider canvas: the hinge, cover screen, and postur
 import { ScreenOrientation } from '@capgo/capacitor-screen-orientation';
 
 const { foldable } = await ScreenOrientation.isDeviceFoldable();
-if (!foldable) return;
+if (foldable) {
+  const fold = await ScreenOrientation.getFoldState();
+  console.log(fold.posture, fold.hingeBounds);
 
-const fold = await ScreenOrientation.getFoldState();
-console.log(fold.posture, fold.hingeBounds);
-
-await ScreenOrientation.addListener('foldStateChange', (state) => {
-  document.documentElement.dataset.posture = state.posture;
-});
+  await ScreenOrientation.addListener('foldStateChange', (state) => {
+    document.documentElement.dataset.posture = state.posture;
+  });
+}
 ```
 
 **iPhone Duo (iOS 27.1+)**
