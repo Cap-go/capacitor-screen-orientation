@@ -355,7 +355,7 @@ async function refreshDuo() {
   }
 }
 
-SplashScreen.hide().catch(() => {});
+SplashScreen.hide().catch(() => undefined);
 refreshDuo();
 plugin.addListener('foldStateChange', () => {
   refreshDuo();
