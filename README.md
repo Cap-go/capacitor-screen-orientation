@@ -37,7 +37,7 @@ iPhone Duo (iOS 27.1 or later) is a foldable iPhone. The same fold calls used on
 
 Closed on the cover screen, the iPhone Duo simulator reports the outer display and a hinge at 0°:
 
-![iPhone Duo simulator closed on the cover screen, reporting flat, outer display, hinge 0 degrees](screenshots/ios-iphone-duo.webp)
+<img src="screenshots/ios-iphone-duo.webp" width="300" alt="iPhone Duo simulator closed on the cover screen, reporting flat, outer display, hinge 0 degrees">
 
 `activeDisplay` is `inner` on the large folding screen and `outer` on the cover screen. `getReservedRegions()` returns the fold (`division`) and anything covering the glass, such as the camera (`occlusion`). `getBarPlacement()` says whether iOS moved the tab bar to the side, and how wide that bar is.
 
