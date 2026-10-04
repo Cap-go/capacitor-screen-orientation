@@ -49,15 +49,12 @@ Foldables give you more than a wider canvas: the hinge, cover screen, and postur
 ```typescript
 import { ScreenOrientation } from '@capgo/capacitor-screen-orientation';
 
-const { foldable } = await ScreenOrientation.isDeviceFoldable();
-if (foldable) {
-  const fold = await ScreenOrientation.getFoldState();
-  console.log(fold.posture, fold.hingeBounds);
+const fold = await ScreenOrientation.getFoldState();
+console.log(fold.posture, fold.hingeBounds);
 
-  await ScreenOrientation.addListener('foldStateChange', (state) => {
-    document.documentElement.dataset.posture = state.posture;
-  });
-}
+await ScreenOrientation.addListener('foldStateChange', (state) => {
+  document.documentElement.dataset.posture = state.posture;
+});
 ```
 
 **iPhone Duo (iOS 27.1+)**
@@ -72,11 +69,7 @@ if (foldable) {
   <img src="screenshots/ios-iphone-duo.webp" alt="iPhone Duo simulator on the cover display, reporting flat posture and outer display" width="280" />
 </p>
 
-<<<<<<< HEAD
-<img src="screenshots/ios-iphone-duo.webp" width="300" alt="iPhone Duo simulator closed on the cover screen, reporting flat, outer display, hinge 0 degrees">
-=======
 Non-folding iPhones and iOS before 27.1 stay `flat` with no hinge. Android uses Jetpack WindowManager; web uses the Device Posture API and viewport segments when the browser exposes them (hinge angle stays `null` on web).
->>>>>>> c842145 (docs: foldable README, remove THIRD_PARTY_LICENSES, shrink screenshot)
 
 **Fold API** (full types below): `isDeviceFoldable()`, `getFoldState()`, `getHingeAngle()`, `getReservedRegions()`, `getBarPlacement()`, `setVerticalBarBehavior()`, `getSizeClass()`, listeners `foldStateChange`, `hingeAngleChange`, `sizeClassChange`.
 
