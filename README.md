@@ -1,13 +1,13 @@
 # @capgo/capacitor-screen-orientation
 
-<a href="https://capgo.app/"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-screen-orientation" alt="Capgo - Instant updates for Capacitor" /></a>
+<a href="https://capgo.app/?ref=plugin_screen_orientation"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-screen-orientation" alt="Capgo - Instant updates for Capacitor" /></a>
 
 <div align="center">
-  <h2><a href="https://capgo.app/?ref=plugin_screen_orientation"> ➡️ Get Instant updates for your App with Capgo</a></h2>
-  <h2><a href="https://capgo.app/consulting/?ref=plugin_screen_orientation"> Missing a feature? We'll build the plugin for you 💪</a></h2>
+  <p><b>Capgo</b>: open-source live updates for Ionic and Capacitor apps. Ship OTA fixes and features instantly, without waiting for app store review.</p>
+  <h2><a href="https://capgo.app/register/?ref=plugin_screen_orientation">➡️ Get started for free</a></h2>
+  <p>14-day unlimited free trial. No credit card required</p>
+  <p><a href="https://capgo.app/consulting/?ref=plugin_screen_orientation">Missing a feature? We'll build the plugin for you 💪</a></p>
 </div>
-
-
 
 Screen orientation plugin with support for detecting true physical device orientation
 
@@ -32,7 +32,7 @@ iPhone Duo (iOS 27.1 or later) is a foldable iPhone. The same fold calls used on
 | Pose | `posture` | Hinge |
 | --- | --- | --- |
 | Open flat, or closed on the outer display | `flat` | `180` open, `0` closed |
-| Held half-open like a book | `book` | vertical hinge, about `20`–`160` |
+| Held half-open like a book | `book` | vertical hinge, about `20` to `160` |
 | Propped half-open like a laptop | `tabletop` | horizontal hinge |
 
 Closed on the cover screen, the iPhone Duo simulator reports the outer display and a hinge at 0°:
