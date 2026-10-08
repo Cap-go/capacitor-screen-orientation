@@ -181,8 +181,9 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
                     print("Screen orientation geometry update warning: \(error.localizedDescription)")
                 }
             } else {
-                let orientationValue = self.preferredInterfaceOrientationValue(from: orientationString)
-                UIDevice.current.setValue(orientationValue, forKey: "orientation")
+                // iOS 15 has no public API to force a rotation (requestGeometryUpdate is iOS 16+).
+                // supportedOrientations was set above, so the UI rotates into the locked mask as soon as
+                // the device orientation allows it; the lock is not guaranteed to rotate the UI immediately.
                 UINavigationController.attemptRotationToDeviceOrientation()
             }
 
@@ -461,21 +462,6 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
             return .landscapeRight
         default:
             return nil
-        }
-    }
-
-    private func preferredInterfaceOrientationValue(from orientationString: String) -> Int {
-        switch orientationString {
-        case "any":
-            return UIInterfaceOrientation.unknown.rawValue
-        case "landscape", "landscape-primary":
-            return UIInterfaceOrientation.landscapeLeft.rawValue
-        case "landscape-secondary":
-            return UIInterfaceOrientation.landscapeRight.rawValue
-        case "portrait-secondary":
-            return UIInterfaceOrientation.portraitUpsideDown.rawValue
-        default:
-            return UIInterfaceOrientation.portrait.rawValue
         }
     }
 
