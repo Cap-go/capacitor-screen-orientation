@@ -1,13 +1,13 @@
 # @capgo/capacitor-screen-orientation
 
-<a href="https://capgo.app/"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-screen-orientation" alt="Capgo - Instant updates for Capacitor" /></a>
+<a href="https://capgo.app/?ref=plugin_screen_orientation"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-screen-orientation" alt="Capgo - Instant updates for Capacitor" /></a>
 
 <div align="center">
-  <h2><a href="https://capgo.app/?ref=plugin_screen_orientation"> ➡️ Get Instant updates for your App with Capgo</a></h2>
-  <h2><a href="https://capgo.app/consulting/?ref=plugin_screen_orientation"> Missing a feature? We'll build the plugin for you 💪</a></h2>
+  <p><b>Capgo</b>: push fixes to your Capacitor users in minutes, build signed iOS and Android apps without a Mac, and roll back in one click.</p>
+  <h2><a href="https://capgo.app/register/?ref=plugin_screen_orientation">➡️ Get started for free</a></h2>
+  <p>14-day unlimited free trial. No credit card required</p>
+  <p><a href="https://capgo.app/consulting/?ref=plugin_screen_orientation">Missing a feature? We'll build the plugin for you 💪</a></p>
 </div>
-
-
 
 Screen orientation plugin with support for detecting true physical device orientation
 
@@ -61,9 +61,9 @@ await ScreenOrientation.addListener('foldStateChange', (state) => {
 
 | Pose | `posture` | Hinge (typical) |
 | --- | --- | --- |
-| Open flat, or closed on the cover display | `flat` | `180` open, `0` closed |
-| Half-open like a book | `book` | vertical, about `20` to `160` |
-| Half-open like a laptop | `tabletop` | horizontal |
+| Open flat, or closed on the outer display | `flat` | `180` open, `0` closed |
+| Held half-open like a book | `book` | vertical hinge, about `20` to `160` |
+| Propped half-open like a laptop | `tabletop` | horizontal hinge |
 
 <p align="center">
   <img src="screenshots/ios-iphone-duo.webp" alt="iPhone Duo simulator on the cover display, reporting flat posture and outer display" width="280" />
@@ -256,6 +256,10 @@ tracking physical device orientation using motion sensors.
 Note: The UI will still respect the user's orientation lock setting.
 Motion tracking allows you to detect how the device is physically held
 even when the UI doesn't rotate.
+
+On iOS 15 there is no public API to force a rotation, so the lock restricts
+the allowed orientations and the UI rotates into them when the device
+orientation allows it. On iOS 16 and later the rotation is requested immediately.
 
 | Param         | Type                                                                      | Description                          |
 | ------------- | ------------------------------------------------------------------------- | ------------------------------------ |

@@ -433,6 +433,10 @@ export interface CapacitorScreenOrientationPlugin {
    * Motion tracking allows you to detect how the device is physically held
    * even when the UI doesn't rotate.
    *
+   * On iOS 15 there is no public API to force a rotation, so the lock restricts
+   * the allowed orientations and the UI rotates into them when the device
+   * orientation allows it. On iOS 16 and later the rotation is requested immediately.
+   *
    * @since 1.0.0
    * @param options Options for locking the orientation.
    * @returns {Promise<void>} A promise that resolves when the orientation is locked.
