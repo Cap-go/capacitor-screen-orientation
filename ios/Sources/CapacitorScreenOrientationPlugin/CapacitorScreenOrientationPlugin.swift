@@ -181,7 +181,9 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
                     print("Screen orientation geometry update warning: \(error.localizedDescription)")
                 }
             } else {
-                // Public API only: supportedOrientations was set above; this requests rotation within that mask.
+                // iOS 15 has no public API to force a rotation (requestGeometryUpdate is iOS 16+).
+                // supportedOrientations was set above, so the UI rotates into the locked mask as soon as
+                // the device orientation allows it; the lock is not guaranteed to rotate the UI immediately.
                 UINavigationController.attemptRotationToDeviceOrientation()
             }
 

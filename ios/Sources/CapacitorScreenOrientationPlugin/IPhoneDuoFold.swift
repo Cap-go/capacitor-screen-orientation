@@ -155,6 +155,10 @@ final class IPhoneDuoFold: NSObject {
             if let hinge = update.hinge {
                 self.hingeStatus = self.statusCode(hinge.status)
                 self.hingeRadians = hinge.angle
+            } else {
+                // UIKit sends a nil hinge when the interaction leaves a hierarchy that provides hinge updates.
+                self.hingeStatus = nil
+                self.hingeRadians = nil
             }
             self.onChange?()
         }
