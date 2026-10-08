@@ -227,9 +227,13 @@ Note: The UI will still respect the user's orientation lock setting.
 Motion tracking allows you to detect how the device is physically held
 even when the UI doesn't rotate.
 
-On iOS 15 there is no public API to force a rotation, so the lock restricts
-the allowed orientations and the UI rotates into them when the device
-orientation allows it. On iOS 16 and later the rotation is requested immediately.
+On iOS 16 and later, the plugin applies the orientation mask with
+`UIWindowScene.requestGeometryUpdate` and refreshes supported interface
+orientations on the root view controller.
+
+On iOS 15 there is no public API to force a rotation (private `UIDevice`
+orientation KVC is not used). `lock()` restricts the allowed orientations
+but may not force an immediate rotation until the user rotates the device.
 
 | Param         | Type                                                                      | Description                          |
 | ------------- | ------------------------------------------------------------------------- | ------------------------------------ |

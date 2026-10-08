@@ -173,17 +173,9 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
                     return
                 }
 
-                windowScene.keyWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
-                self.capViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
-                windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { error in
-                    // Geometry update can fail when the requested orientation is already active
-                    // or temporarily unavailable; the supportedOrientations mask still applies.
-                    print("Screen orientation geometry update warning: \(error.localizedDescription)")
-                }
+                self.applyGeometryOrientationUpdate(mask, in: windowScene, context: "lock")
             } else {
-                // iOS 15 has no public API to force a rotation (requestGeometryUpdate is iOS 16+).
-                // supportedOrientations was set above, so the UI rotates into the locked mask as soon as
-                // the device orientation allows it; the lock is not guaranteed to rotate the UI immediately.
+                // iOS 15: public API only — see lock() JSDoc for the immediate-rotation limitation.
                 UINavigationController.attemptRotationToDeviceOrientation()
             }
 
@@ -218,11 +210,7 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
                     return
                 }
 
-                windowScene.keyWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
-                self.capViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
-                windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .all)) { error in
-                    print("Screen orientation unlock geometry update warning: \(error.localizedDescription)")
-                }
+                self.applyGeometryOrientationUpdate(.all, in: windowScene, context: "unlock")
             } else {
                 UINavigationController.attemptRotationToDeviceOrientation()
             }
@@ -342,6 +330,22 @@ public class CapacitorScreenOrientationPlugin: CAPPlugin, CAPBridgedPlugin {
             .compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive }
             ?? UIApplication.shared.connectedScenes.first as? UIWindowScene
+    }
+
+    @available(iOS 16.0, *)
+    private func applyGeometryOrientationUpdate(
+        _ mask: UIInterfaceOrientationMask,
+        in windowScene: UIWindowScene,
+        context: String
+    ) {
+        let rootViewController = windowScene.keyWindow?.rootViewController ?? self.bridge?.viewController
+        rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        self.capViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { error in
+            // Geometry update can fail when the requested orientation is already active
+            // or temporarily unavailable; the supportedOrientations mask still applies.
+            print("Screen orientation \(context) geometry update warning: \(error.localizedDescription)")
+        }
     }
 
     private func getCurrentOrientationType() -> String {
