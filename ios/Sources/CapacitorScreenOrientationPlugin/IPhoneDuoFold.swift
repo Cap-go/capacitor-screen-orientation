@@ -151,9 +151,11 @@ final class IPhoneDuoFold: NSObject {
         guard #available(iOS 27.1, *) else { return }
         self.onChange = onChange
         let interaction = UIHingeInteraction { [weak self] _, update in
-            guard let self, let hinge = update.hinge else { return }
-            self.hingeStatus = self.statusCode(hinge.status)
-            self.hingeRadians = hinge.angle
+            guard let self else { return }
+            if let hinge = update.hinge {
+                self.hingeStatus = self.statusCode(hinge.status)
+                self.hingeRadians = hinge.angle
+            }
             self.onChange?()
         }
         self.interaction = interaction
