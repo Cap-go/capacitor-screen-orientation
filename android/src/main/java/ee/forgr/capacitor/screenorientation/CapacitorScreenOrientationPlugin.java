@@ -24,7 +24,7 @@ import org.json.JSONObject;
 @CapacitorPlugin(name = "CapacitorScreenOrientation")
 public class CapacitorScreenOrientationPlugin extends Plugin implements SensorEventListener {
 
-    private final String pluginVersion = "8.4.0";
+    private final String pluginVersion = "8.4.1";
     private int currentOrientation;
     private SensorManager sensorManager;
     private Sensor accelerometer;
