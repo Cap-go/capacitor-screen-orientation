@@ -63,7 +63,7 @@ export class CapacitorScreenOrientationWeb extends WebPlugin implements Capacito
     try {
       await screenOrientation.lock(options.orientation);
     } catch (error) {
-      throw new Error(`Failed to lock orientation: ${error}`);
+      throw new Error(`Failed to lock orientation: ${error}`, { cause: error });
     }
   }
 
